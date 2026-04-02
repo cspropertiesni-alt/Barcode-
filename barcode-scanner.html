@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlchoScan — UK Barcode Lookup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d0d;
+      --surface:  #161616;
+      --border:   #2a2a2a;
+      --accent:   #d4a017;
+      --accent2:  #8b4a0f;
+      --text:     #e8e4dc;
+      --muted:    #6b6560;
+      --green:    #4caf72;
+      --red:      #cf4444;
+      --scan-line: rgba(212,160,23,0.6);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.5;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.8rem, 8vw, 4.5rem);
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    header p {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .divider {
+      width: 100%;
+      max-width: 480px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      margin-bottom: 28px;
+      opacity: 0.4;
+    }
+
+    /* ── Scanner panel ── */
+    .scanner-wrap {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #video-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Corner brackets */
+    .corner {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-color: var(--accent);
+      border-style: solid;
+      z-index: 10;
+    }
+    .corner.tl { top: 16px; left: 16px;  border-width: 2px 0 0 2px; }
+    .corner.tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
+    .corner.bl { bottom: 16px; left: 16px;  border-width: 0 0 2px 2px; }
+    .corner.br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+
+    /* Scan animation line */
+    .scan-line {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      height: 2px;
+      background: var(--scan-line);
+      box-shadow: 0 0 12px 2px var(--scan-line);
+      z-index: 9;
+      animation: scanMove 2s ease-in-out infinite;
+      display: none;
+    }
+    .scanning .scan-line { display: block; }
+
+    @keyframes scanMove {
+      0%   { top: 20%; }
+      50%  { top: 75%; }
+      100% { top: 20%; }
+    }
+
+    .camera-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .camera-placeholder svg { opacity: 0.3; }
+
+    /* ── Controls ── */
+    .controls {
+      padding: 16px;
+      display: flex;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
+
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--accent); color: #0d0d0d; border-color: var(--accent); font-weight: 500; }
+    .btn.primary:hover { background: #e8b520; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── Manual barcode input ── */
+    .manual-input {
+      padding: 0 16px 16px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .manual-input input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      padding: 10px 12px;
+      border-radius: 2px;
+      outline: none;
+      letter-spacing: 0.1em;
+      transition: border-color 0.15s;
+    }
+    .manual-input input::placeholder { color: var(--muted); }
+    .manual-input input:focus { border-color: var(--accent); }
+
+    .manual-input button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      padding: 10px 14px;
+      border-radius: 2px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s;
+    }
+    .manual-input button:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Status bar ── */
+    .status-bar {
+      padding: 8px 16px;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+    .status-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.error  { background: var(--red);   box-shadow: 0 0 6px var(--red);   }
+
+    /* ── Result card ── */
+    .result-card {
+      width: 100%;
+      max-width: 480px;
+      margin-top: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      padding: 12px 16px;
+      background: var(--accent);
+      color: #0d0d0d;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 0.9rem;
+      letter-spacing: 0.2em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-header.error-header {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .result-body {
+      padding: 20px 16px;
+    }
+
+    .product-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      letter-spacing: 0.05em;
+      color: var(--text);
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .meta-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .meta-value {
+      font-size: 0.8rem;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--accent2);
+      color: var(--accent);
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 2px;
+      margin-top: 2px;
+    }
+
+    .barcode-display {
+      font-size: 1.1rem;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      font-weight: 500;
+    }
+
+    /* ── History ── */
+    .history-section {
+      width: 100%;
+      max-width: 480px;
+      margin-top: 24px;
+    }
+
+    .history-title {
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .history-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .history-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .history-item:hover { border-color: var(--accent); }
+
+    .history-name { font-size: 0.75rem; color: var(--text); }
+    .history-barcode { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.1em; }
+    .history-time { font-size: 0.6rem; color: var(--muted); flex-shrink: 0; }
+
+    /* Loading spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(212,160,23,0.3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>AlchoScan</h1>
+    <p>UK Alcohol Barcode Lookup</p>
+  </header>
+  <div class="divider"></div>
+
+  <!-- ── Scanner Panel ── -->
+  <div class="scanner-wrap" id="scanner-wrap">
+    <div id="video-container">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="scan-line" id="scan-line"></div>
+
+      <video id="video" playsinline autoplay muted></video>
+      <div class="camera-placeholder" id="placeholder">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        Press START CAMERA to begin scanning
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn primary" id="btn-start">Start Camera</button>
+      <button class="btn" id="btn-stop" disabled>Stop</button>
+    </div>
+
+    <div class="manual-input">
+      <input type="text" id="manual-barcode" placeholder="Or enter barcode manually…" maxlength="14" inputmode="numeric" />
+      <button id="btn-lookup">Look Up</button>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Ready</span>
+      <div class="spinner hidden" id="spinner"></div>
+    </div>
+  </div>
+
+  <!-- ── Result Card ── -->
+  <div id="result-card" class="result-card hidden"></div>
+
+  <!-- ── History ── -->
+  <div class="history-section hidden" id="history-section">
+    <div class="history-title">Scan History</div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+  <!-- ZXing barcode library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.21.3/umd/index.min.js"></script>
+  <script>
+    // ── State ──────────────────────────────────────────────
+    let codeReader = null;
+    let scanning   = false;
+    let lastCode   = null;
+    const history  = [];
+
+    // ── DOM refs ───────────────────────────────────────────
+    const video       = document.getElementById('video');
+    const placeholder = document.getElementById('placeholder');
+    const btnStart    = document.getElementById('btn-start');
+    const btnStop     = document.getElementById('btn-stop');
+    const statusDot   = document.getElementById('status-dot');
+    const statusText  = document.getElementById('status-text');
+    const spinner     = document.getElementById('spinner');
+    const resultCard  = document.getElementById('result-card');
+    const scanLine    = document.getElementById('scan-line');
+    const scannerWrap = document.getElementById('scanner-wrap');
+    const manualInput = document.getElementById('manual-barcode');
+    const btnLookup   = document.getElementById('btn-lookup');
+    const histSection = document.getElementById('history-section');
+    const histList    = document.getElementById('history-list');
+
+    // ── Status helpers ─────────────────────────────────────
+    function setStatus(msg, state = 'idle') {
+      statusText.textContent = msg;
+      statusDot.className    = 'status-dot';
+      if (state === 'active') statusDot.classList.add('active');
+      if (state === 'error')  statusDot.classList.add('error');
+    }
+
+    function setLoading(on) {
+      spinner.classList.toggle('hidden', !on);
+      btnStart.disabled  = on || scanning;
+      btnStop.disabled   = on || !scanning;
+      btnLookup.disabled = on;
+    }
+
+    // ── Start camera ───────────────────────────────────────
+    async function startScanner() {
+      try {
+        setStatus('Requesting camera access…', 'idle');
+        const ZXing = window.ZXing || window['@zxing/library'];
+        codeReader = new ZXing.BrowserMultiFormatReader();
+
+        // List cameras and prefer back-facing
+        const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+        let deviceId  = devices.find(d => /back|rear|environment/i.test(d.label))?.deviceId
+                     || devices[0]?.deviceId;
+
+        await codeReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
+          if (result) {
+            const code = result.getText();
+            if (code !== lastCode) {
+              lastCode = code;
+              onBarcodeDetected(code);
+            }
+          }
+        });
+
+        placeholder.classList.add('hidden');
+        scanning = true;
+        scannerWrap.classList.add('scanning');
+        btnStart.disabled = true;
+        btnStop.disabled  = false;
+        setStatus('Scanning — point camera at barcode', 'active');
+
+      } catch (e) {
+        setStatus('Camera error: ' + e.message, 'error');
+        console.error(e);
+      }
+    }
+
+    // ── Stop camera ────────────────────────────────────────
+    function stopScanner() {
+      if (codeReader) { codeReader.reset(); codeReader = null; }
+      scanning = false;
+      lastCode = null;
+      scannerWrap.classList.remove('scanning');
+      placeholder.classList.remove('hidden');
+      video.srcObject = null;
+      btnStart.disabled = false;
+      btnStop.disabled  = true;
+      setStatus('Camera stopped', 'idle');
+    }
+
+    // ── Barcode detected ───────────────────────────────────
+    async function onBarcodeDetected(code) {
+      setStatus(`Detected: ${code} — looking up…`, 'active');
+      setLoading(true);
+      await lookupBarcode(code);
+      setLoading(false);
+      // Brief cooldown before allowing re-scan of same code
+      setTimeout(() => { lastCode = null; }, 4000);
+    }
+
+    // ── Open Food Facts lookup ─────────────────────────────
+    async function lookupBarcode(code) {
+      const barcode = code.trim().replace(/\D/g, '');
+      if (!barcode) { setStatus('Invalid barcode', 'error'); return; }
+
+      try {
+        const res  = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+        const data = await res.json();
+
+        if (data.status === 1 && data.product) {
+          renderResult(barcode, data.product);
+          addHistory(barcode, data.product.product_name || data.product.product_name_en || 'Unknown Product');
+          setStatus('Product found ✓', 'active');
+        } else {
+          renderNotFound(barcode);
+          setStatus('Product not found in database', 'error');
+        }
+      } catch (e) {
+        renderError(barcode, 'Network error — check your connection');
+        setStatus('Lookup failed', 'error');
+      }
+    }
+
+    // ── Render result ──────────────────────────────────────
+    function renderResult(barcode, p) {
+      const name     = p.product_name || p.product_name_en || p.generic_name || 'Unknown Product';
+      const brand    = p.brands || '—';
+      const quantity = p.quantity || '—';
+      const category = (p.categories_tags || [])
+        .find(t => /alcohol|beer|wine|spirit|cider|lager|whisky|vodka|gin|rum|brandy/i.test(t))
+        ?.replace(/^en:/, '').replace(/-/g, ' ') || '—';
+      const abv      = p.nutriments?.['alcohol'] ? p.nutriments['alcohol'] + '% ABV' : '—';
+      const country  = p.countries || '—';
+      const img      = p.image_front_small_url || p.image_small_url || null;
+
+      resultCard.className = 'result-card';
+      resultCard.innerHTML = `
+        <div class="result-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          PRODUCT IDENTIFIED
+        </div>
+        <div class="result-body">
+          ${img ? `<img src="${img}" alt="${name}" style="float:right;max-width:80px;max-height:80px;object-fit:contain;margin:0 0 12px 16px;border-radius:2px;border:1px solid var(--border);" onerror="this.remove()">` : ''}
+          <div class="product-name">${name}</div>
+          <div class="meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Barcode</span>
+              <span class="meta-value barcode-display">${barcode}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Brand</span>
+              <span class="meta-value">${brand}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Size / Qty</span>
+              <span class="meta-value">${quantity}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">ABV</span>
+              <span class="meta-value">${abv}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Category</span>
+              <span class="meta-value"><span class="tag">${category}</span></span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Market</span>
+              <span class="meta-value">${country}</span>
+            </div>
+          </div>
+        </div>`;
+      resultCard.classList.remove('hidden');
+    }
+
+    function renderNotFound(barcode) {
+      resultCard.className = 'result-card';
+      resultCard.innerHTML = `
+        <div class="result-header error-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          NOT FOUND
+        </div>
+        <div class="result-body">
+          <div class="product-name" style="color:var(--muted)">Barcode ${barcode}</div>
+          <p style="font-size:0.75rem;color:var(--muted);line-height:1.6;">
+            This product isn't in the Open Food Facts database yet. It may be a regional or lesser-known product.
+            Try the <a href="https://world.openfoodfacts.org/product/${barcode}" target="_blank" style="color:var(--accent)">OFF product page</a> or contribute the data.
+          </p>
+        </div>`;
+      resultCard.classList.remove('hidden');
+    }
+
+    function renderError(barcode, msg) {
+      resultCard.className = 'result-card';
+      resultCard.innerHTML = `
+        <div class="result-header error-header">ERROR</div>
+        <div class="result-body">
+          <div class="product-name" style="color:var(--muted);font-size:1rem">${msg}</div>
+          <p style="font-size:0.7rem;color:var(--muted);margin-top:8px;">Barcode: ${barcode}</p>
+        </div>`;
+      resultCard.classList.remove('hidden');
+    }
+
+    // ── History ────────────────────────────────────────────
+    function addHistory(barcode, name) {
+      const ts  = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const entry = { barcode, name, ts };
+      history.unshift(entry);
+      if (history.length > 10) history.pop();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      histSection.classList.remove('hidden');
+      histList.innerHTML = history.map((h, i) => `
+        <div class="history-item" onclick="lookupBarcode('${h.barcode}')">
+          <div>
+            <div class="history-name">${h.name}</div>
+            <div class="history-barcode">${h.barcode}</div>
+          </div>
+          <div class="history-time">${h.ts}</div>
+        </div>`).join('');
+    }
+
+    // ── Events ─────────────────────────────────────────────
+    btnStart.addEventListener('click', startScanner);
+    btnStop.addEventListener('click', stopScanner);
+
+    btnLookup.addEventListener('click', () => {
+      const code = manualInput.value.trim();
+      if (!code) return;
+      setLoading(true);
+      lookupBarcode(code).finally(() => setLoading(false));
+    });
+
+    manualInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') btnLookup.click();
+    });
+
+    // ── Check ZXing loaded ─────────────────────────────────
+    window.addEventListener('load', () => {
+      const hasZXing = typeof ZXing !== 'undefined';
+      if (!hasZXing) {
+        setStatus('Scanner library failed to load — manual entry only', 'error');
+        btnStart.disabled = true;
+      }
+    });
+  </script>
+</body>
+</html>
