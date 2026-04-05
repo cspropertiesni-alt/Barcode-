@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AlchoScan — UK Barcode Lookup</title>
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#d4a017" />
+  <title>AlchoScan</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,16 +25,10 @@
       align-items: center; padding: 20px 16px 48px;
     }
     header { text-align: center; margin-bottom: 20px; }
-    h1 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(2.8rem, 10vw, 4.5rem);
-      letter-spacing: 0.08em; color: var(--accent); line-height: 1;
-    }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.8rem, 10vw, 4.5rem); letter-spacing: 0.08em; color: var(--accent); line-height: 1; }
     .sub { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.25em; text-transform: uppercase; margin-top: 4px; }
     .divider { width: 100%; max-width: 480px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); margin-bottom: 20px; opacity: 0.4; }
-
     .card { width: 100%; max-width: 480px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-
     #vc { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
     video { width: 100%; height: 100%; object-fit: cover; display: none; }
     .corner { position: absolute; width: 26px; height: 26px; border-color: var(--accent); border-style: solid; z-index: 10; }
@@ -36,48 +36,25 @@
     .tr { top: 14px; right: 14px; border-width: 2px 2px 0 0; }
     .bl { bottom: 14px; left: 14px; border-width: 0 0 2px 2px; }
     .br { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; }
-    #scanline {
-      display: none; position: absolute; left: 14px; right: 14px; height: 2px;
-      background: rgba(212,160,23,0.8); box-shadow: 0 0 10px 3px rgba(212,160,23,0.4);
-      z-index: 9; animation: scan 2s ease-in-out infinite;
-    }
+    #scanline { display: none; position: absolute; left: 14px; right: 14px; height: 2px; background: rgba(212,160,23,0.8); box-shadow: 0 0 10px 3px rgba(212,160,23,0.4); z-index: 9; animation: scan 2s ease-in-out infinite; }
     @keyframes scan { 0%,100% { top: 18%; } 50% { top: 78%; } }
     #placeholder { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.08em; text-align: center; padding: 32px 20px; }
     #placeholder svg { opacity: 0.25; }
-
     .controls { padding: 12px 14px; display: flex; gap: 8px; border-top: 1px solid var(--border); }
-    .btn {
-      flex: 1; padding: 11px 6px; border: 1px solid var(--border);
-      background: transparent; color: var(--text); font-family: 'DM Mono', monospace;
-      font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase;
-      cursor: pointer; border-radius: 2px; transition: all 0.15s;
-    }
-    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn { flex: 1; padding: 11px 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
     .btn.primary { background: var(--accent); color: #0d0d0d; border-color: var(--accent); font-weight: 500; }
     .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
     .manual { padding: 0 14px 14px; display: flex; gap: 8px; }
-    .manual input {
-      flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text);
-      font-family: 'DM Mono', monospace; font-size: 0.78rem; padding: 9px 11px;
-      border-radius: 2px; outline: none; letter-spacing: 0.1em;
-    }
+    .manual input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.78rem; padding: 9px 11px; border-radius: 2px; outline: none; letter-spacing: 0.1em; }
     .manual input:focus { border-color: var(--accent); }
     .manual input::placeholder { color: var(--muted); }
-    .manual button {
-      background: transparent; border: 1px solid var(--border); color: var(--muted);
-      font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.1em;
-      padding: 9px 12px; border-radius: 2px; cursor: pointer; text-transform: uppercase;
-    }
-    .manual button:hover { border-color: var(--accent); color: var(--accent); }
-
+    .manual button { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.1em; padding: 9px 12px; border-radius: 2px; cursor: pointer; text-transform: uppercase; }
     #statusbar { padding: 8px 14px; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; min-height: 34px; }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
     .dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); }
     .dot.err { background: var(--red);   box-shadow: 0 0 6px var(--red); }
     .spinner { width: 14px; height: 14px; border: 2px solid rgba(212,160,23,0.25); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
     #result { width: 100%; max-width: 480px; margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; display: none; animation: up 0.3s ease; }
     @keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .rhead { padding: 10px 14px; background: var(--accent); color: #0d0d0d; font-family: 'Bebas Neue', sans-serif; font-size: 0.85rem; letter-spacing: 0.2em; display: flex; align-items: center; gap: 6px; }
@@ -91,25 +68,31 @@
     .tag { display: inline-block; background: var(--accent2); color: var(--accent); font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; }
     .bc { font-size: 1rem; color: var(--accent); letter-spacing: 0.12em; }
     .thumb { float: right; max-width: 72px; max-height: 72px; object-fit: contain; margin: 0 0 10px 12px; border: 1px solid var(--border); border-radius: 2px; }
-
     #hist { width: 100%; max-width: 480px; margin-top: 20px; display: none; }
     .htitle { font-size: 0.58rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
     .htitle::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-    .hi { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; margin-bottom: 6px; transition: border-color 0.15s; }
-    .hi:hover { border-color: var(--accent); }
+    .hi { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; margin-bottom: 6px; }
     .hn { font-size: 0.72rem; color: var(--text); }
     .hb { font-size: 0.58rem; color: var(--muted); }
     .ht { font-size: 0.58rem; color: var(--muted); flex-shrink: 0; }
+    #installBanner { width: 100%; max-width: 480px; margin-bottom: 16px; background: var(--accent2); border: 1px solid var(--accent); border-radius: 4px; padding: 12px 14px; display: none; align-items: center; justify-content: space-between; gap: 12px; }
+    #installBanner span { font-size: 0.68rem; color: var(--accent); letter-spacing: 0.08em; }
+    #installBtn { background: var(--accent); color: #0d0d0d; border: none; font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 14px; border-radius: 2px; cursor: pointer; font-weight: 500; }
   </style>
 </head>
 <body>
+  <div id="installBanner">
+    <span>📲 Install AlchoScan as an app</span>
+    <button id="installBtn">Install</button>
+  </div>
+
   <header>
     <h1>AlchoScan</h1>
     <p class="sub">UK Alcohol Barcode Lookup</p>
   </header>
   <div class="divider"></div>
 
-  <div class="card" id="scanner">
+  <div class="card">
     <div id="vc">
       <div class="corner tl"></div><div class="corner tr"></div>
       <div class="corner bl"></div><div class="corner br"></div>
@@ -123,17 +106,14 @@
         Tap Start Camera to scan a barcode
       </div>
     </div>
-
     <div class="controls">
       <button class="btn primary" id="btnStart">Start Camera</button>
       <button class="btn" id="btnStop" disabled>Stop</button>
     </div>
-
     <div class="manual">
       <input type="text" id="manualInput" inputmode="numeric" placeholder="Or enter barcode manually…" maxlength="14" />
       <button id="btnGo">Go</button>
     </div>
-
     <div id="statusbar">
       <div class="dot" id="dot"></div>
       <div class="spinner" id="spinner"></div>
@@ -145,19 +125,41 @@
   <div id="hist"><div class="htitle">Scan History</div><div id="histList"></div></div>
 
   <script>
-    const video      = document.getElementById('video');
-    const placeholder= document.getElementById('placeholder');
-    const btnStart   = document.getElementById('btnStart');
-    const btnStop    = document.getElementById('btnStop');
-    const dot        = document.getElementById('dot');
-    const spinner    = document.getElementById('spinner');
-    const statusMsg  = document.getElementById('statusMsg');
-    const result     = document.getElementById('result');
-    const scanline   = document.getElementById('scanline');
-    const manualInput= document.getElementById('manualInput');
-    const btnGo      = document.getElementById('btnGo');
-    const hist       = document.getElementById('hist');
-    const histList   = document.getElementById('histList');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(console.error);
+    }
+
+    let deferredPrompt = null;
+    const installBanner = document.getElementById('installBanner');
+    const installBtn    = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBanner.style.display = 'flex';
+    });
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBanner.style.display = 'none';
+    });
+    window.addEventListener('appinstalled', () => { installBanner.style.display = 'none'; });
+
+    const video       = document.getElementById('video');
+    const placeholder = document.getElementById('placeholder');
+    const btnStart    = document.getElementById('btnStart');
+    const btnStop     = document.getElementById('btnStop');
+    const dot         = document.getElementById('dot');
+    const spinner     = document.getElementById('spinner');
+    const statusMsg   = document.getElementById('statusMsg');
+    const result      = document.getElementById('result');
+    const scanline    = document.getElementById('scanline');
+    const manualInput = document.getElementById('manualInput');
+    const btnGo       = document.getElementById('btnGo');
+    const hist        = document.getElementById('hist');
+    const histList    = document.getElementById('histList');
 
     let stream = null, detector = null, rafId = null, scanning = false;
     const history = [];
@@ -166,9 +168,7 @@
       statusMsg.textContent = msg;
       dot.className = 'dot' + (state==='on' ? ' on' : state==='err' ? ' err' : '');
     }
-    function setLoading(on) {
-      spinner.style.display = on ? 'block' : 'none';
-    }
+    function setLoading(on) { spinner.style.display = on ? 'block' : 'none'; }
 
     async function startCamera() {
       try {
@@ -184,13 +184,12 @@
         scanning = true;
         btnStart.disabled = true;
         btnStop.disabled = false;
-
         if ('BarcodeDetector' in window) {
-          setStatus('Scanning — point at barcode', 'on');
           detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39'] });
+          setStatus('Scanning — point at barcode', 'on');
           loop();
         } else {
-          setStatus('Camera on — BarcodeDetector not available, use manual entry', 'err');
+          setStatus('Camera on — use manual entry below', 'err');
         }
       } catch(e) {
         setStatus('Camera error: ' + (e.message || e), 'err');
@@ -201,12 +200,8 @@
       if (!scanning || !video.srcObject) return;
       if (video.readyState < 2) { rafId = requestAnimationFrame(loop); return; }
       detector.detect(video).then(codes => {
-        if (codes.length > 0) {
-          stopCamera();
-          lookup(codes[0].rawValue);
-        } else {
-          rafId = requestAnimationFrame(loop);
-        }
+        if (codes.length > 0) { stopCamera(); lookup(codes[0].rawValue); }
+        else { rafId = requestAnimationFrame(loop); }
       }).catch(() => { rafId = requestAnimationFrame(loop); });
     }
 
@@ -233,15 +228,14 @@
         const data = await res.json();
         if (data.status === 1 && data.product) {
           showResult(barcode, data.product);
-          const name = data.product.product_name || data.product.product_name_en || 'Unknown';
-          addHistory(barcode, name);
+          addHistory(barcode, data.product.product_name || data.product.product_name_en || 'Unknown');
           setStatus('Product found ✓', 'on');
         } else {
           showNotFound(barcode);
           setStatus('Not found in database', 'err');
         }
       } catch(e) {
-        showError(barcode);
+        showError();
         setStatus('Network error', 'err');
       }
       setLoading(false);
@@ -282,11 +276,9 @@
         </div>`;
     }
 
-    function showError(barcode) {
+    function showError() {
       result.style.display = 'block';
-      result.innerHTML = `
-        <div class="rhead err">Error</div>
-        <div class="rbody"><div class="pname" style="color:var(--muted);font-size:1rem">Network error — check connection</div></div>`;
+      result.innerHTML = `<div class="rhead err">Error</div><div class="rbody"><div class="pname" style="color:var(--muted);font-size:1rem">Network error — check connection</div></div>`;
     }
 
     function addHistory(barcode, name) {
@@ -300,16 +292,6 @@
           <div class="ht">${h.ts}</div>
         </div>`).join('');
     }
-
-    // Check support on load
-    window.addEventListener('load', () => {
-      if (!('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices)) {
-        setStatus('Camera not supported in this browser', 'err');
-        btnStart.disabled = true;
-      } else if (!('BarcodeDetector' in window)) {
-        setStatus('Ready — note: auto-scan not supported, use manual entry', 'err');
-      }
-    });
 
     btnStart.addEventListener('click', startCamera);
     btnStop.addEventListener('click', stopCamera);
