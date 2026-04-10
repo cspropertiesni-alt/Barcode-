@@ -172,6 +172,11 @@
 </head>
 <body>
 
+<div id="trialBanner" style="width:100%;max-width:480px;margin-bottom:8px;background:#1a1209;border:1px solid #cf4444;border-radius:4px;padding:8px 14px;display:none;align-items:center;justify-content:space-between;gap:10px">
+  <span style="font-size:0.6rem;color:#cf4444;letter-spacing:0.1em">⏳ DEV PREVIEW</span>
+  <span id="trialDays" style="font-size:0.6rem;color:#cf4444;letter-spacing:0.08em;font-weight:500"></span>
+</div>
+
 <div id="installBanner">
   <span>📲 Install AlchoScan as an app</span>
   <button id="installBtn">Install</button>
@@ -241,7 +246,7 @@
     <div class="stock-count" id="stockCount">0 items</div>
   </div>
   <div class="stock-actions">
-    <button class="btn blue"   style="font-size:0.6rem" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn blue"   style="font-size:0.6rem" onclick="exportCSV()">⬇ Export Data</button>
     <button class="btn locked" style="font-size:0.6rem" onclick="showPremiumModal('combined')">📊 Combined Export 🔒</button>
     <button class="btn danger" style="font-size:0.6rem" onclick="clearStock()">✕ Clear</button>
   </div>
@@ -266,6 +271,113 @@ document.getElementById('installBtn').addEventListener('click', async () => {
   deferredPrompt.prompt(); await deferredPrompt.userChoice;
   deferredPrompt = null; document.getElementById('installBanner').style.display = 'none';
 });
+
+// ── 30-Day Trial (tamper-resistant) ──────────────────────────
+const TRIAL_DAYS = 30;
+const _TK = 'alchoscan_trial_start';
+const _CK = '_as_t';
+
+// Write to multiple locations so clearing one doesn't reset
+function _setTS(ts) {
+  const v = ts.toString();
+  try { localStorage.setItem(_TK, v); } catch {}
+  try { document.cookie = `${_CK}=${v};path=/;max-age=${60*60*24*365};SameSite=Strict`; } catch {}
+  try {
+    const r = indexedDB.open('_as', 1);
+    r.onupgradeneeded = e => e.target.result.createObjectStore('t');
+    r.onsuccess = e => {
+      try { e.target.result.transaction('t','readwrite').objectStore('t').put(v, 'ts'); } catch {}
+    };
+  } catch {}
+}
+
+function _getTS() {
+  // Check all storage locations, use the earliest (oldest) timestamp found
+  const candidates = [];
+  try { const v = localStorage.getItem(_TK); if (v) candidates.push(parseInt(v)); } catch {}
+  try {
+    const m = document.cookie.match(new RegExp(`${_CK}=([^;]+)`));
+    if (m) candidates.push(parseInt(m[1]));
+  } catch {}
+  // Filter valid timestamps (reasonable range: after 2025)
+  const valid = candidates.filter(t => t > 1735689600000);
+  return valid.length > 0 ? Math.min(...valid) : null;
+}
+
+// Also check IndexedDB asynchronously and lock if needed
+function _checkIDB() {
+  try {
+    const r = indexedDB.open('_as', 1);
+    r.onupgradeneeded = e => e.target.result.createObjectStore('t');
+    r.onsuccess = e => {
+      try {
+        const tx = e.target.result.transaction('t','readonly');
+        const g = tx.objectStore('t').get('ts');
+        g.onsuccess = () => {
+          if (g.result) {
+            const idbTs = parseInt(g.result);
+            const syncTs = _getTS();
+            // If IDB has an older timestamp, use it
+            if (idbTs > 1735689600000 && (!syncTs || idbTs < syncTs)) {
+              _setTS(idbTs);
+              // Re-check trial with the corrected timestamp
+              const elapsed = Date.now() - idbTs;
+              const left = TRIAL_DAYS - Math.floor(elapsed / (1000*60*60*24));
+              if (left <= 0) _lockApp();
+            }
+          }
+        };
+      } catch {}
+    };
+  } catch {}
+}
+
+function _lockApp() {
+  if (typeof PRODUCTS !== 'undefined') {
+    Object.keys(PRODUCTS).forEach(k => delete PRODUCTS[k]);
+  }
+  document.body.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:30px;text-align:center;font-family:'DM Mono',monospace;color:#e8e4dc;background:#0d0d0d">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;color:#cf4444;letter-spacing:0.06em;margin-bottom:12px">Trial Expired</div>
+      <p style="color:#6b6560;font-size:0.78rem;line-height:1.7;max-width:340px;margin-bottom:24px">
+        Your 30-day testing period has ended and all product data has been cleared.
+        Contact the developer to continue using AlchoScan.
+      </p>
+      <div style="font-size:0.6rem;color:#6b6560;letter-spacing:0.15em;text-transform:uppercase">Build: Dev Preview</div>
+    </div>`;
+}
+
+function checkTrial() {
+  let ts = _getTS();
+  if (!ts) { ts = Date.now(); }
+  // Always re-persist to all locations
+  _setTS(ts);
+  const elapsed = Date.now() - ts;
+  const left = TRIAL_DAYS - Math.floor(elapsed / (1000*60*60*24));
+  if (left <= 0) { _lockApp(); return false; }
+  // Async IDB check as backup
+  _checkIDB();
+  return Math.max(left, 0);
+}
+
+const daysLeft = checkTrial();
+if (daysLeft !== false) {
+  // Show days remaining in console for debugging
+  console.log(`[AlchoScan] Trial: ${daysLeft} day(s) remaining`);
+  // Show trial banner
+  const trialBanner = document.getElementById('trialBanner');
+  const trialDaysEl = document.getElementById('trialDays');
+  if (trialBanner && trialDaysEl) {
+    trialBanner.style.display = 'flex';
+    trialDaysEl.textContent = daysLeft + ' day' + (daysLeft !== 1 ? 's' : '') + ' left';
+    // Turn yellow when > 7 days, red when <= 7
+    if (daysLeft > 7) {
+      trialBanner.style.borderColor = '#d4a017';
+      trialBanner.querySelector('span').style.color = '#d4a017';
+      trialDaysEl.style.color = '#d4a017';
+    }
+  }
+}
 
 // ── State ────────────────────────────────────────────────────
 let currentMode  = 'lookup';
@@ -814,30 +926,33 @@ function clearStock() {
   setStatus('Stock cleared', 'blue');
 }
 
-// ── CSV export ────────────────────────────────────────────────
+// ── JSON export ──────────────────────────────────────────────
 function exportCSV() {
   const filtered = currentArea
     ? stockItems.filter(i => i.area === currentArea)
     : stockItems;
   if (filtered.length === 0) { setStatus('No items to export', 'err'); return; }
-  const rows = [
-    ['Barcode','Product Name','Whole Bottles','Tenths','Total'],
-    ...filtered.map(i => [
-      i.barcode,
-      '"' + i.name.replace(/"/g,'""') + '"',
-      i.whole,
-      i.tenths || '',
-      formatTotal(i.whole, i.tenths)
-    ])
-  ];
-  const csv  = rows.map(r => r.join(',')).join('\n');
-  const blob = new Blob([csv], { type:'text/csv' });
+  const payload = {
+    _v: 1,
+    exported: new Date().toISOString(),
+    area: currentArea || null,
+    items: filtered.map(i => ({
+      b: i.barcode,
+      n: i.name,
+      s: i.size,
+      w: i.whole,
+      t: i.tenths || 0,
+      tot: parseFloat(formatTotal(i.whole, i.tenths))
+    }))
+  };
+  const json = JSON.stringify(payload);
+  const blob = new Blob([json], { type:'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   const date = new Date().toISOString().slice(0,10);
   const area = currentArea ? '_' + currentArea.replace(/\s+/g,'_') : '';
   a.href     = url;
-  a.download = `stocktake${area}_${date}.csv`;
+  a.download = `stocktake${area}_${date}.json`;
   a.click();
   URL.revokeObjectURL(url);
   setStatus(`Exported ${filtered.length} items`, 'blue');
