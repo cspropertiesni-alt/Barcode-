@@ -12,982 +12,601 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
   <script src="products.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:#0d0d0d; --surface:#161616; --border:#2a2a2a;
-      --accent:#d4a017; --accent2:#5a2d0c; --text:#e8e4dc;
-      --muted:#6b6560; --green:#4caf72; --red:#cf4444; --blue:#4a9eda;
-    }
-    body { background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:16px 16px 60px; }
-
-    header { text-align:center; margin-bottom:14px; }
-    h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.4rem,9vw,4rem); letter-spacing:0.08em; color:var(--accent); line-height:1; }
-    .sub { font-size:0.58rem; color:var(--muted); letter-spacing:0.25em; text-transform:uppercase; margin-top:3px; }
-    .divider { width:100%; max-width:480px; height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); margin-bottom:14px; opacity:0.4; }
-
-    /* Mode toggle */
-    .mode-toggle { width:100%; max-width:480px; display:flex; margin-bottom:14px; border:1px solid var(--border); border-radius:3px; overflow:hidden; }
-    .mode-btn { flex:1; padding:10px 6px; background:transparent; border:none; color:var(--muted); font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.15em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
-    .mode-btn.active { background:var(--accent); color:#0d0d0d; font-weight:500; }
-    .mode-btn:not(.active):hover { color:var(--accent); }
-
-    /* Area pill */
-    #areaPill { width:100%; max-width:480px; display:none; align-items:center; justify-content:space-between; background:var(--surface); border:1px solid var(--blue); border-radius:3px; padding:8px 14px; margin-bottom:10px; }
-    .area-pill-left { display:flex; flex-direction:column; gap:2px; }
-    .area-pill-label { font-size:0.52rem; color:var(--muted); letter-spacing:0.2em; text-transform:uppercase; }
-    .area-pill-name { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; color:var(--blue); letter-spacing:0.06em; }
-    .area-pill-change { font-size:0.58rem; color:var(--blue); letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; border:1px solid var(--blue); padding:4px 10px; border-radius:2px; background:transparent; font-family:'DM Mono',monospace; }
-    .area-pill-change:hover { background:rgba(74,158,218,0.1); }
-
-    /* Scanner card */
-    .card { width:100%; max-width:480px; background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
-    #vc { position:relative; width:100%; aspect-ratio:4/3; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-    video { width:100%; height:100%; object-fit:cover; display:none; }
-    .corner { position:absolute; width:26px; height:26px; border-color:var(--accent); border-style:solid; z-index:10; }
-    .tl { top:14px; left:14px; border-width:2px 0 0 2px; }
-    .tr { top:14px; right:14px; border-width:2px 2px 0 0; }
-    .bl { bottom:14px; left:14px; border-width:0 0 2px 2px; }
-    .br { bottom:14px; right:14px; border-width:0 2px 2px 0; }
-    #scanline { display:none; position:absolute; left:14px; right:14px; height:2px; background:rgba(212,160,23,0.8); box-shadow:0 0 10px 3px rgba(212,160,23,0.4); z-index:9; animation:scan 2s ease-in-out infinite; }
-    @keyframes scan { 0%,100%{top:18%} 50%{top:78%} }
-    #placeholder { display:flex; flex-direction:column; align-items:center; gap:10px; color:var(--muted); font-size:0.68rem; letter-spacing:0.08em; text-align:center; padding:28px 20px; }
-    #placeholder svg { opacity:0.22; }
-    .mode-badge { position:absolute; top:10px; left:50%; transform:translateX(-50%); background:var(--blue); color:#fff; font-size:0.55rem; letter-spacing:0.2em; text-transform:uppercase; padding:3px 10px; border-radius:2px; z-index:11; display:none; white-space:nowrap; }
-
-    .controls { padding:10px 14px; display:flex; gap:8px; border-top:1px solid var(--border); }
-    .btn { flex:1; padding:10px 6px; border:1px solid var(--border); background:transparent; color:var(--text); font-family:'DM Mono',monospace; font-size:0.63rem; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:all 0.15s; }
-    .btn.primary { background:var(--accent); color:#0d0d0d; border-color:var(--accent); font-weight:500; }
-    .btn.danger  { border-color:var(--red); color:var(--red); }
-    .btn.blue    { border-color:var(--blue); color:var(--blue); }
-    .btn.locked  { border-color:#2a2a2a; color:var(--muted); cursor:not-allowed; opacity:0.5; }
-    .btn:disabled { opacity:0.3; cursor:not-allowed; }
-
-    .manual { padding:0 14px 12px; display:flex; gap:8px; }
-    .manual input { flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:0.78rem; padding:8px 10px; border-radius:2px; outline:none; letter-spacing:0.1em; }
-    .manual input:focus { border-color:var(--accent); }
-    .manual input::placeholder { color:var(--muted); }
-    .manual button { background:transparent; border:1px solid var(--border); color:var(--muted); font-family:'DM Mono',monospace; font-size:0.62rem; padding:8px 12px; border-radius:2px; cursor:pointer; text-transform:uppercase; letter-spacing:0.1em; }
-    .manual button:hover { border-color:var(--accent); color:var(--accent); }
-
-    #statusbar { padding:7px 14px; font-size:0.58rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); border-top:1px solid var(--border); display:flex; align-items:center; gap:8px; min-height:32px; }
-    .dot { width:6px; height:6px; border-radius:50%; background:var(--muted); flex-shrink:0; }
-    .dot.on   { background:var(--green); box-shadow:0 0 6px var(--green); }
-    .dot.err  { background:var(--red);   box-shadow:0 0 6px var(--red); }
-    .dot.blue { background:var(--blue);  box-shadow:0 0 6px var(--blue); }
-    .spinner { width:13px; height:13px; border:2px solid rgba(212,160,23,0.2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.6s linear infinite; flex-shrink:0; display:none; }
-    @keyframes spin { to{transform:rotate(360deg)} }
-
-    /* Lookup result */
-    #result { width:100%; max-width:480px; margin-top:14px; background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; display:none; animation:up 0.25s ease; }
-    @keyframes up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-    .rhead { padding:9px 14px; background:var(--accent); color:#0d0d0d; font-family:'Bebas Neue',sans-serif; font-size:0.82rem; letter-spacing:0.2em; }
-    .rhead.err { background:var(--red); color:#fff; }
-    .rbody { padding:14px; }
-    .pname { font-family:'Bebas Neue',sans-serif; font-size:clamp(1.2rem,5vw,1.8rem); letter-spacing:0.04em; line-height:1.15; margin-bottom:12px; }
-    .meta { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
-    .mi { display:flex; flex-direction:column; gap:2px; }
-    .ml { font-size:0.52rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); }
-    .mv { font-size:0.73rem; color:var(--text); }
-    .bc { color:var(--accent); letter-spacing:0.1em; }
-    .src-badge { font-size:0.52rem; color:var(--muted); margin-top:10px; letter-spacing:0.1em; }
-
-    /* Modal overlay */
-    #modalOverlay { position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:100; display:none; align-items:center; justify-content:center; padding:20px; }
-    .modal { background:var(--surface); border:1px solid var(--border); border-radius:4px; width:100%; max-width:400px; overflow:hidden; animation:up 0.2s ease; }
-    .mhead { padding:12px 16px; font-family:'Bebas Neue',sans-serif; font-size:0.9rem; letter-spacing:0.2em; }
-    .mhead.blue  { background:var(--blue);   color:#fff; }
-    .mhead.gold  { background:var(--accent); color:#0d0d0d; }
-    .mhead.red   { background:var(--red);    color:#fff; }
-    .mbody { padding:16px; }
-    .mproduct { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:0.04em; margin-bottom:4px; line-height:1.2; }
-    .msub { font-size:0.62rem; color:var(--muted); letter-spacing:0.1em; margin-bottom:16px; line-height:1.5; }
-    .mbtns { display:flex; gap:8px; }
-    .mbtns.col { flex-direction:column; gap:8px; }
-
-    /* Stock quantity inputs */
-    .qty-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
-    .qty-field { display:flex; flex-direction:column; gap:5px; }
-    .qty-label { font-size:0.56rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); }
-    .qty-input { background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Bebas Neue',sans-serif; font-size:2.4rem; padding:10px 12px; border-radius:2px; outline:none; text-align:center; width:100%; -moz-appearance:textfield; }
-    .qty-input::-webkit-inner-spin-button,.qty-input::-webkit-outer-spin-button { -webkit-appearance:none; }
-    .qty-input:focus { border-color:var(--blue); }
-    .qty-hint { font-size:0.52rem; color:var(--muted); text-align:center; letter-spacing:0.08em; }
-    .total-row { background:var(--bg); border:1px solid var(--border); border-radius:2px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-    .total-lbl { font-size:0.56rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); }
-    .total-val { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; color:var(--accent); }
-
-    /* Area setup */
-    .area-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
-    .area-row { display:flex; align-items:center; gap:8px; }
-    .area-num { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; color:var(--muted); width:18px; flex-shrink:0; text-align:center; }
-    .area-input { flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:0.82rem; padding:9px 11px; border-radius:2px; outline:none; letter-spacing:0.08em; }
-    .area-input:focus { border-color:var(--blue); }
-    .area-input::placeholder { color:var(--muted); }
-    .area-locked-row { display:flex; align-items:center; gap:8px; padding:9px 11px; border:1px solid #1e1e1e; border-radius:2px; opacity:0.45; }
-    .area-locked-text { font-size:0.7rem; color:var(--muted); flex:1; }
-    .premium-tag { font-size:0.5rem; letter-spacing:0.15em; text-transform:uppercase; background:var(--accent2); color:var(--accent); padding:2px 6px; border-radius:2px; white-space:nowrap; flex-shrink:0; }
-    .area-skip { font-size:0.62rem; color:var(--muted); text-align:center; margin-top:8px; cursor:pointer; text-decoration:underline; letter-spacing:0.08em; }
-    .area-skip:hover { color:var(--text); }
-
-    /* Area select (when areas already set) */
-    .area-select-list { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
-    .area-opt { background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:0.8rem; padding:12px 14px; border-radius:2px; cursor:pointer; text-align:left; width:100%; display:flex; align-items:center; justify-content:space-between; transition:all 0.15s; letter-spacing:0.06em; }
-    .area-opt:hover { border-color:var(--blue); color:var(--blue); }
-    .area-opt.selected { border-color:var(--blue); background:rgba(74,158,218,0.08); color:var(--blue); }
-
-    /* Premium upsell modal */
-    .premium-features { display:flex; flex-direction:column; gap:8px; margin:14px 0; }
-    .pf-row { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border:1px solid var(--border); border-radius:2px; }
-    .pf-icon { font-size:1.1rem; flex-shrink:0; }
-    .pf-text { font-size:0.7rem; color:var(--text); line-height:1.4; }
-    .pf-text span { color:var(--muted); font-size:0.62rem; display:block; margin-top:2px; }
-
-    /* Stock section */
-    #stock-section { width:100%; max-width:480px; margin-top:16px; display:none; }
-    .stock-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-    .stock-title-wrap { display:flex; align-items:center; gap:8px; }
-    .stock-title { font-size:0.56rem; letter-spacing:0.25em; text-transform:uppercase; color:var(--muted); }
-    .stock-area-tag { font-size:0.52rem; letter-spacing:0.12em; text-transform:uppercase; background:rgba(74,158,218,0.12); color:var(--blue); border:1px solid rgba(74,158,218,0.25); padding:2px 7px; border-radius:2px; }
-    .stock-count { font-size:0.58rem; color:var(--accent); letter-spacing:0.1em; }
-    .stock-actions { display:flex; gap:8px; margin-bottom:10px; }
-    .stock-list { display:flex; flex-direction:column; gap:5px; max-height:340px; overflow-y:auto; }
-    .stock-item { background:var(--surface); border:1px solid var(--border); border-radius:2px; padding:8px 12px; display:flex; align-items:center; gap:10px; }
-    .stock-item-info { flex:1; min-width:0; }
-    .stock-item-name { font-size:0.7rem; color:var(--text); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .stock-item-meta { font-size:0.54rem; color:var(--muted); margin-top:2px; }
-    .stock-item-qty { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; color:var(--accent); flex-shrink:0; min-width:44px; text-align:right; }
-    .stock-item-del { background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:1.1rem; padding:2px 4px; flex-shrink:0; line-height:1; }
-    .stock-item-del:hover { color:var(--red); }
-
-    /* Locked export row */
-    .locked-export { display:flex; align-items:center; gap:10px; padding:10px 14px; border:1px solid #1e1e1e; border-radius:2px; opacity:0.5; margin-top:4px; cursor:pointer; }
-    .locked-export:hover { opacity:0.7; }
-    .locked-export-text { font-size:0.62rem; color:var(--muted); flex:1; letter-spacing:0.08em; }
-
-    /* Install banner */
-    #installBanner { width:100%; max-width:480px; margin-bottom:12px; background:var(--accent2); border:1px solid var(--accent); border-radius:4px; padding:10px 14px; display:none; align-items:center; justify-content:space-between; gap:12px; }
-    #installBanner span { font-size:0.65rem; color:var(--accent); letter-spacing:0.08em; }
-    #installBtn { background:var(--accent); color:#0d0d0d; border:none; font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase; padding:7px 12px; border-radius:2px; cursor:pointer; font-weight:500; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#0d0d0d;--surface:#161616;--border:#2a2a2a;--accent:#d4a017;--accent2:#5a2d0c;--text:#e8e4dc;--muted:#6b6560;--green:#4caf72;--red:#cf4444;--blue:#4a9eda}
+    body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px 16px 60px}
+    header{text-align:center;margin-bottom:14px}
+    h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,9vw,4rem);letter-spacing:.08em;color:var(--accent);line-height:1}
+    .sub{font-size:.58rem;color:var(--muted);letter-spacing:.25em;text-transform:uppercase;margin-top:3px}
+    .divider{width:100%;max-width:480px;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);margin-bottom:14px;opacity:.4}
+    .mode-toggle{width:100%;max-width:480px;display:flex;margin-bottom:14px;border:1px solid var(--border);border-radius:3px;overflow:hidden}
+    .mode-btn{flex:1;padding:10px 4px;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+    .mode-btn.active{background:var(--accent);color:#0d0d0d;font-weight:500}
+    .mode-btn:not(.active):hover{color:var(--accent)}
+    #contextPill{width:100%;max-width:480px;display:none;background:var(--surface);border:1px solid var(--blue);border-radius:3px;padding:8px 14px;margin-bottom:10px}
+    .ctx-row{display:flex;align-items:center;justify-content:space-between}
+    .ctx-left{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+    .ctx-label{font-size:.48rem;color:var(--muted);letter-spacing:.2em;text-transform:uppercase}
+    .ctx-venue{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--blue);letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ctx-area{font-size:.58rem;color:var(--accent);letter-spacing:.08em}
+    .ctx-limit{font-size:.48rem;color:var(--muted);letter-spacing:.06em;margin-top:2px}
+    .ctx-btns{display:flex;gap:6px;flex-shrink:0;margin-left:10px}
+    .ctx-btn{font-size:.52rem;color:var(--blue);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border:1px solid var(--blue);padding:3px 8px;border-radius:2px;background:transparent;font-family:'DM Mono',monospace;white-space:nowrap}
+    .ctx-btn:hover{background:rgba(74,158,218,.1)}
+    .card{width:100%;max-width:480px;background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+    #vc{position:relative;width:100%;aspect-ratio:4/3;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    video{width:100%;height:100%;object-fit:cover;display:none}
+    .corner{position:absolute;width:26px;height:26px;border-color:var(--accent);border-style:solid;z-index:10}
+    .tl{top:14px;left:14px;border-width:2px 0 0 2px}.tr{top:14px;right:14px;border-width:2px 2px 0 0}
+    .bl{bottom:14px;left:14px;border-width:0 0 2px 2px}.br{bottom:14px;right:14px;border-width:0 2px 2px 0}
+    #scanline{display:none;position:absolute;left:14px;right:14px;height:2px;background:rgba(212,160,23,.8);box-shadow:0 0 10px 3px rgba(212,160,23,.4);z-index:9;animation:scan 2s ease-in-out infinite}
+    @keyframes scan{0%,100%{top:18%}50%{top:78%}}
+    #placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--muted);font-size:.68rem;letter-spacing:.08em;text-align:center;padding:28px 20px}
+    #placeholder svg{opacity:.22}
+    .mode-badge{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;padding:3px 10px;border-radius:2px;z-index:11;display:none;white-space:nowrap}
+    .controls{padding:10px 14px;display:flex;gap:8px;border-top:1px solid var(--border)}
+    .btn{flex:1;padding:10px 6px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:'DM Mono',monospace;font-size:.63rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:all .15s}
+    .btn.primary{background:var(--accent);color:#0d0d0d;border-color:var(--accent);font-weight:500}
+    .btn.danger{border-color:var(--red);color:var(--red)}
+    .btn.blue{border-color:var(--blue);color:var(--blue)}
+    .btn.green{border-color:var(--green);color:var(--green)}
+    .btn.locked{border-color:#2a2a2a;color:var(--muted);cursor:not-allowed;opacity:.5}
+    .btn:disabled{opacity:.3;cursor:not-allowed}
+    .manual{padding:0 14px 12px;display:flex;gap:8px}
+    .manual input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:.78rem;padding:8px 10px;border-radius:2px;outline:none;letter-spacing:.1em}
+    .manual input:focus{border-color:var(--accent)}
+    .manual input::placeholder{color:var(--muted)}
+    .manual button{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:.62rem;padding:8px 12px;border-radius:2px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em}
+    .manual button:hover{border-color:var(--accent);color:var(--accent)}
+    #statusbar{padding:7px 14px;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;min-height:32px}
+    .dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+    .dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+    .dot.err{background:var(--red);box-shadow:0 0 6px var(--red)}
+    .dot.blue{background:var(--blue);box-shadow:0 0 6px var(--blue)}
+    .spinner{width:13px;height:13px;border:2px solid rgba(212,160,23,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;display:none}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #result{width:100%;max-width:480px;margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;display:none;animation:up .25s ease}
+    @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .rhead{padding:9px 14px;background:var(--accent);color:#0d0d0d;font-family:'Bebas Neue',sans-serif;font-size:.82rem;letter-spacing:.2em}
+    .rhead.err{background:var(--red);color:#fff}
+    .rbody{padding:14px}
+    .pname{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.2rem,5vw,1.8rem);letter-spacing:.04em;line-height:1.15;margin-bottom:12px}
+    .meta{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .mi{display:flex;flex-direction:column;gap:2px}
+    .ml{font-size:.52rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+    .mv{font-size:.73rem;color:var(--text)}
+    .bc{color:var(--accent);letter-spacing:.1em}
+    .src-badge{font-size:.52rem;color:var(--muted);margin-top:10px;letter-spacing:.1em}
+    #modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+    .modal{background:var(--surface);border:1px solid var(--border);border-radius:4px;width:100%;max-width:400px;overflow:hidden;animation:up .2s ease;max-height:90vh;overflow-y:auto}
+    .mhead{padding:12px 16px;font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:.2em}
+    .mhead.blue{background:var(--blue);color:#fff}
+    .mhead.gold{background:var(--accent);color:#0d0d0d}
+    .mhead.red{background:var(--red);color:#fff}
+    .mhead.green{background:var(--green);color:#fff}
+    .mbody{padding:16px}
+    .mproduct{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:.04em;margin-bottom:4px;line-height:1.2}
+    .msub{font-size:.62rem;color:var(--muted);letter-spacing:.1em;margin-bottom:16px;line-height:1.5}
+    .mbtns{display:flex;gap:8px}
+    .mbtns.col{flex-direction:column;gap:8px}
+    .qty-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+    .qty-field{display:flex;flex-direction:column;gap:5px}
+    .qty-label{font-size:.56rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+    .qty-input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:2.4rem;padding:10px 12px;border-radius:2px;outline:none;text-align:center;width:100%;-moz-appearance:textfield}
+    .qty-input::-webkit-inner-spin-button,.qty-input::-webkit-outer-spin-button{-webkit-appearance:none}
+    .qty-input:focus{border-color:var(--blue)}
+    .qty-hint{font-size:.52rem;color:var(--muted);text-align:center;letter-spacing:.08em}
+    .total-row{background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .total-lbl{font-size:.56rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+    .total-val{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--accent)}
+    .setup-field{margin-bottom:14px}
+    .setup-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:.82rem;padding:9px 11px;border-radius:2px;outline:none;letter-spacing:.08em}
+    .setup-input:focus{border-color:var(--blue)}
+    .setup-input::placeholder{color:var(--muted)}
+    .area-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+    .area-row{display:flex;align-items:center;gap:8px}
+    .area-num{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--muted);width:18px;flex-shrink:0;text-align:center}
+    .area-input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:.82rem;padding:9px 11px;border-radius:2px;outline:none;letter-spacing:.08em}
+    .area-input:focus{border-color:var(--blue)}
+    .area-input::placeholder{color:var(--muted)}
+    .area-locked-row{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid #1e1e1e;border-radius:2px;opacity:.45}
+    .area-locked-text{font-size:.7rem;color:var(--muted);flex:1}
+    .premium-tag{font-size:.5rem;letter-spacing:.15em;text-transform:uppercase;background:var(--accent2);color:var(--accent);padding:2px 6px;border-radius:2px;white-space:nowrap;flex-shrink:0}
+    .select-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+    .sel-opt{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:.8rem;padding:12px 14px;border-radius:2px;cursor:pointer;text-align:left;width:100%;display:flex;align-items:center;justify-content:space-between;transition:all .15s;letter-spacing:.06em}
+    .sel-opt:hover{border-color:var(--blue);color:var(--blue)}
+    .sel-opt.active{border-color:var(--blue);background:rgba(74,158,218,.08);color:var(--blue)}
+    .sel-opt .sel-sub{font-size:.5rem;color:var(--muted)}
+    .sel-opt .sel-badge{font-size:.48rem;letter-spacing:.12em;text-transform:uppercase;padding:2px 6px;border-radius:2px}
+    .premium-features{display:flex;flex-direction:column;gap:8px;margin:14px 0}
+    .pf-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:2px}
+    .pf-icon{font-size:1.1rem;flex-shrink:0}
+    .pf-text{font-size:.7rem;color:var(--text);line-height:1.4}
+    .pf-text span{color:var(--muted);font-size:.62rem;display:block;margin-top:2px}
+    #stock-section{width:100%;max-width:480px;margin-top:16px;display:none}
+    .stock-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .stock-title-wrap{display:flex;align-items:center;gap:8px}
+    .stock-title{font-size:.56rem;letter-spacing:.25em;text-transform:uppercase;color:var(--muted)}
+    .stock-area-tag{font-size:.52rem;letter-spacing:.12em;text-transform:uppercase;background:rgba(74,158,218,.12);color:var(--blue);border:1px solid rgba(74,158,218,.25);padding:2px 7px;border-radius:2px}
+    .stock-count{font-size:.58rem;color:var(--accent);letter-spacing:.1em}
+    .stock-actions{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+    .stock-actions .btn{font-size:.56rem;flex:unset;padding:8px 10px}
+    .stock-list{display:flex;flex-direction:column;gap:5px;max-height:340px;overflow-y:auto}
+    .stock-item{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:8px 12px;display:flex;align-items:center;gap:10px}
+    .stock-item-info{flex:1;min-width:0}
+    .stock-item-name{font-size:.7rem;color:var(--text);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .stock-item-meta{font-size:.54rem;color:var(--muted);margin-top:2px}
+    .stock-item-qty{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--accent);flex-shrink:0;min-width:44px;text-align:right}
+    .stock-item-del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;padding:2px 4px;flex-shrink:0;line-height:1}
+    .stock-item-del:hover{color:var(--red)}
+    .archive-item{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:10px 14px;margin-bottom:6px}
+    .archive-date{font-family:'Bebas Neue',sans-serif;font-size:1rem;color:var(--accent);letter-spacing:.06em}
+    .archive-meta{font-size:.56rem;color:var(--muted);letter-spacing:.06em;margin-top:3px;line-height:1.6}
+    #installBanner{width:100%;max-width:480px;margin-bottom:12px;background:var(--accent2);border:1px solid var(--accent);border-radius:4px;padding:10px 14px;display:none;align-items:center;justify-content:space-between;gap:12px}
+    #installBanner span{font-size:.65rem;color:var(--accent);letter-spacing:.08em}
+    #installBtn{background:var(--accent);color:#0d0d0d;border:none;font-family:'DM Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;padding:7px 12px;border-radius:2px;cursor:pointer;font-weight:500}
   </style>
 </head>
 <body>
-
 <div id="trialBanner" style="width:100%;max-width:480px;margin-bottom:8px;background:#1a1209;border:1px solid #cf4444;border-radius:4px;padding:8px 14px;display:none;align-items:center;justify-content:space-between;gap:10px">
   <span style="font-size:0.6rem;color:#cf4444;letter-spacing:0.1em">⏳ DEV PREVIEW</span>
   <span id="trialDays" style="font-size:0.6rem;color:#cf4444;letter-spacing:0.08em;font-weight:500"></span>
 </div>
-
-<div id="installBanner">
-  <span>📲 Install AlchoScan as an app</span>
-  <button id="installBtn">Install</button>
-</div>
-
-<header>
-  <h1>AlchoScan</h1>
-  <p class="sub">UK Alcohol Barcode Lookup</p>
-</header>
+<div id="installBanner"><span>📲 Install AlchoScan as an app</span><button id="installBtn">Install</button></div>
+<header><h1>AlchoScan</h1><p class="sub">UK Alcohol Barcode Lookup</p></header>
 <div class="divider"></div>
-
 <div class="mode-toggle">
-  <button class="mode-btn active" id="modeLookup" onclick="setMode('lookup')">🔍 Scan &amp; Lookup</button>
-  <button class="mode-btn" id="modeStock"  onclick="setMode('stock')">📦 Stock Take</button>
+  <button class="mode-btn active" id="modeLookup" onclick="setMode('lookup')">🔍 Lookup</button>
+  <button class="mode-btn" id="modeStock" onclick="setMode('stock')">📦 Stock Take</button>
+  <button class="mode-btn" id="modeHistory" onclick="setMode('history')">📋 History</button>
 </div>
-
-<!-- Active area pill -->
-<div id="areaPill">
-  <div class="area-pill-left">
-    <div class="area-pill-label">Current Area</div>
-    <div class="area-pill-name" id="areaPillName">—</div>
-  </div>
-  <button class="area-pill-change" onclick="showAreaSelectModal()">Change</button>
-</div>
-
-<!-- Scanner -->
+<div id="contextPill"><div class="ctx-row"><div class="ctx-left"><div class="ctx-label">Venue / Area</div><div class="ctx-venue" id="ctxVenue">—</div><div class="ctx-area" id="ctxArea">—</div><div class="ctx-limit" id="ctxLimit"></div></div><div class="ctx-btns"><button class="ctx-btn" onclick="showVenueSelectModal()">Venue</button><button class="ctx-btn" onclick="showAreaSelectModal()">Area</button></div></div></div>
 <div class="card">
-  <div id="vc">
-    <div class="corner tl"></div><div class="corner tr"></div>
-    <div class="corner bl"></div><div class="corner br"></div>
-    <div id="scanline"></div>
-    <div class="mode-badge" id="modeBadge">Stock Take</div>
-    <video id="video" playsinline autoplay muted></video>
-    <div id="placeholder">
-      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-        <circle cx="12" cy="13" r="4"/>
-      </svg>
-      Tap Start Camera to scan
-    </div>
-  </div>
-  <div class="controls">
-    <button class="btn primary" id="btnStart">Start Camera</button>
-    <button class="btn" id="btnStop" disabled>Stop</button>
-  </div>
-  <div class="manual">
-    <input type="text" id="manualInput" inputmode="numeric" placeholder="Enter barcode manually…" maxlength="14" />
-    <button id="btnGo">Go</button>
-  </div>
-  <div id="statusbar">
-    <div class="dot" id="dot"></div>
-    <div class="spinner" id="spinner"></div>
-    <span id="statusMsg">Ready — 2,715 products loaded</span>
-  </div>
+  <div id="vc"><div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div><div id="scanline"></div><div class="mode-badge" id="modeBadge">Stock Take</div><video id="video" playsinline autoplay muted></video><div id="placeholder"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Tap Start Camera to scan</div></div>
+  <div class="controls"><button class="btn primary" id="btnStart">Start Camera</button><button class="btn" id="btnStop" disabled>Stop</button></div>
+  <div class="manual"><input type="text" id="manualInput" inputmode="numeric" placeholder="Enter barcode…" maxlength="14" /><button id="btnGo">Go</button></div>
+  <div id="statusbar"><div class="dot" id="dot"></div><div class="spinner" id="spinner"></div><span id="statusMsg">Initialising…</span></div>
 </div>
-
-<!-- Lookup result -->
 <div id="result"></div>
-
-<!-- Stock section -->
-<div id="stock-section">
-  <div class="stock-header">
-    <div class="stock-title-wrap">
-      <div class="stock-title">Stock Take</div>
-      <div class="stock-area-tag" id="stockAreaTag"></div>
-    </div>
-    <div class="stock-count" id="stockCount">0 items</div>
-  </div>
-  <div class="stock-actions">
-    <button class="btn blue"   style="font-size:0.6rem" onclick="exportCSV()">⬇ Export Data</button>
-    <button class="btn locked" style="font-size:0.6rem" onclick="showPremiumModal('combined')">📊 Combined Export 🔒</button>
-    <button class="btn danger" style="font-size:0.6rem" onclick="clearStock()">✕ Clear</button>
-  </div>
-  <div class="stock-list" id="stockList"></div>
-</div>
-
-<!-- Modal -->
-<div id="modalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:100; align-items:center; justify-content:center; padding:20px;">
-  <div id="modalContent"></div>
-</div>
-
+<div id="stock-section"><div class="stock-header"><div class="stock-title-wrap"><div class="stock-title">Stock Take</div><div class="stock-area-tag" id="stockAreaTag"></div></div><div class="stock-count" id="stockCount">0 items</div></div><div class="stock-actions" id="stockActions"><button class="btn green" onclick="completeStockTake()">✓ Complete</button><button class="btn blue" onclick="exportCurrentJSON()">⬇ Export</button><button class="btn locked" onclick="showPremiumModal('combined')">📊 Combined 🔒</button><button class="btn danger" onclick="clearStock()">✕ Clear</button></div><div class="stock-list" id="stockList"></div></div>
+<div id="history-section" style="width:100%;max-width:480px;margin-top:16px;display:none"></div>
+<div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100;align-items:center;justify-content:center;padding:20px"><div id="modalContent"></div></div>
 <script>
+// ═══════════════════════════════════════════════════════════════
+// AlchoScan v2 — Persistence, Venues, Stock Take Lifecycle
+// ═══════════════════════════════════════════════════════════════
+
 // ── PWA ──────────────────────────────────────────────────────
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); deferredPrompt = e;
-  document.getElementById('installBanner').style.display = 'flex';
-});
-document.getElementById('installBtn').addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt(); await deferredPrompt.userChoice;
-  deferredPrompt = null; document.getElementById('installBanner').style.display = 'none';
-});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBanner').style.display='flex'});
+document.getElementById('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;document.getElementById('installBanner').style.display='none'});
 
 // ── 30-Day Trial (tamper-resistant) ──────────────────────────
-const TRIAL_DAYS = 30;
-const _TK = 'alchoscan_trial_start';
-const _CK = '_as_t';
+const TRIAL_DAYS=30,_TK='alchoscan_trial_start',_CK='_as_t';
+function _setTS(ts){const v=ts.toString();try{localStorage.setItem(_TK,v)}catch{}try{document.cookie=`${_CK}=${v};path=/;max-age=${60*60*24*365};SameSite=Strict`}catch{}try{const r=indexedDB.open('_as',1);r.onupgradeneeded=e=>e.target.result.createObjectStore('t');r.onsuccess=e=>{try{e.target.result.transaction('t','readwrite').objectStore('t').put(v,'ts')}catch{}}}catch{}}
+function _getTS(){const c=[];try{const v=localStorage.getItem(_TK);if(v)c.push(parseInt(v))}catch{}try{const m=document.cookie.match(new RegExp(`${_CK}=([^;]+)`));if(m)c.push(parseInt(m[1]))}catch{}const valid=c.filter(t=>t>1735689600000);return valid.length>0?Math.min(...valid):null}
+function _checkIDB(){try{const r=indexedDB.open('_as',1);r.onupgradeneeded=e=>e.target.result.createObjectStore('t');r.onsuccess=e=>{try{const tx=e.target.result.transaction('t','readonly');const g=tx.objectStore('t').get('ts');g.onsuccess=()=>{if(g.result){const idbTs=parseInt(g.result);const syncTs=_getTS();if(idbTs>1735689600000&&(!syncTs||idbTs<syncTs)){_setTS(idbTs);const elapsed=Date.now()-idbTs;const left=TRIAL_DAYS-Math.floor(elapsed/(1000*60*60*24));if(left<=0)_lockApp()}}}}catch{}}}catch{}}
+function _lockApp(){if(typeof PRODUCTS!=='undefined')Object.keys(PRODUCTS).forEach(k=>delete PRODUCTS[k]);document.body.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:30px;text-align:center;font-family:'DM Mono',monospace;color:#e8e4dc;background:#0d0d0d"><div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;color:#cf4444;letter-spacing:.06em;margin-bottom:12px">Trial Expired</div><p style="color:#6b6560;font-size:.78rem;line-height:1.7;max-width:340px;margin-bottom:24px">Your 30-day testing period has ended. Product lookup is disabled.<br><br>Your stock take archives are safely stored. Contact the developer to upgrade.</p><div style="font-size:.6rem;color:#6b6560;letter-spacing:.15em;text-transform:uppercase">Build: Dev Preview</div></div>`}
+function checkTrial(){let ts=_getTS();if(!ts)ts=Date.now();_setTS(ts);const elapsed=Date.now()-ts;const left=TRIAL_DAYS-Math.floor(elapsed/(1000*60*60*24));if(left<=0){_lockApp();return false}_checkIDB();return Math.max(left,0)}
+const daysLeft=checkTrial();
+if(daysLeft!==false){console.log(`[AlchoScan] Trial: ${daysLeft} day(s) remaining`);const tb=document.getElementById('trialBanner'),td=document.getElementById('trialDays');if(tb&&td){tb.style.display='flex';td.textContent=daysLeft+' day'+(daysLeft!==1?'s':'')+' left';if(daysLeft>7){tb.style.borderColor='#d4a017';tb.querySelector('span').style.color='#d4a017';td.style.color='#d4a017'}}}
 
-// Write to multiple locations so clearing one doesn't reset
-function _setTS(ts) {
-  const v = ts.toString();
-  try { localStorage.setItem(_TK, v); } catch {}
-  try { document.cookie = `${_CK}=${v};path=/;max-age=${60*60*24*365};SameSite=Strict`; } catch {}
-  try {
-    const r = indexedDB.open('_as', 1);
-    r.onupgradeneeded = e => e.target.result.createObjectStore('t');
-    r.onsuccess = e => {
-      try { e.target.result.transaction('t','readwrite').objectStore('t').put(v, 'ts'); } catch {}
-    };
-  } catch {}
+// ═══════════════════════════════════════════════════════════════
+// DATABASE LAYER (IndexedDB)
+// ═══════════════════════════════════════════════════════════════
+const DB_NAME='alchoscan_db',DB_VER=1;
+let db=null;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VER);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('config'))d.createObjectStore('config');if(!d.objectStoreNames.contains('stocktakes')){const s=d.createObjectStore('stocktakes',{keyPath:'id'});s.createIndex('status','status',{unique:false});s.createIndex('venueId','venueId',{unique:false})}};r.onsuccess=e=>{db=e.target.result;res(db)};r.onerror=e=>rej(e.target.error)})}
+function dbGet(store,key){return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const rq=tx.objectStore(store).get(key);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error)})}
+function dbPut(store,value,key){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');const rq=key!==undefined?tx.objectStore(store).put(value,key):tx.objectStore(store).put(value);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error)})}
+function dbGetAll(store,idxName,idxVal){return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const os=tx.objectStore(store);const rq=idxName?os.index(idxName).getAll(idxVal):os.getAll();rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>rej(rq.error)})}
+function dbDelete(store,key){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');const rq=tx.objectStore(store).delete(key);rq.onsuccess=()=>res();rq.onerror=()=>rej(rq.error)})}
+function uuid(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9)}
+
+// ═══════════════════════════════════════════════════════════════
+// DEV TIER LIMITS
+// ═══════════════════════════════════════════════════════════════
+const LIMITS={maxVenues:2,v:[{maxAreas:2,maxItems:200},{maxAreas:1,maxItems:20}]};
+function getVenueLimit(idx){return idx>=0&&idx<LIMITS.v.length?LIMITS.v[idx]:null}
+
+// ═══════════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════════
+let currentMode='lookup';
+let stream=null,detector=null,rafId=null,scanning=false;
+let config={groupName:'',venues:[],activeVenueId:null,activeArea:null};
+let activeStockTake=null;
+
+// ═══════════════════════════════════════════════════════════════
+// DOM REFS
+// ═══════════════════════════════════════════════════════════════
+const video=document.getElementById('video'),placeholder=document.getElementById('placeholder'),btnStart=document.getElementById('btnStart'),btnStop=document.getElementById('btnStop'),dot=document.getElementById('dot'),spinnerEl=document.getElementById('spinner'),statusMsg=document.getElementById('statusMsg'),resultEl=document.getElementById('result'),scanline=document.getElementById('scanline'),manualInput=document.getElementById('manualInput'),btnGo=document.getElementById('btnGo'),stockSect=document.getElementById('stock-section'),stockList=document.getElementById('stockList'),stockCount=document.getElementById('stockCount'),stockAreaTag=document.getElementById('stockAreaTag'),modeBadge=document.getElementById('modeBadge'),contextPill=document.getElementById('contextPill'),ctxVenue=document.getElementById('ctxVenue'),ctxArea=document.getElementById('ctxArea'),ctxLimit=document.getElementById('ctxLimit'),overlay=document.getElementById('modalOverlay'),modalContent=document.getElementById('modalContent'),historySect=document.getElementById('history-section');
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+function setStatus(msg,state='idle'){statusMsg.textContent=msg;dot.className='dot'+(state==='on'?' on':state==='err'?' err':state==='blue'?' blue':'')}
+function setLoading(on){spinnerEl.style.display=on?'block':'none'}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function escAttr(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function showModal(html){modalContent.innerHTML=html;overlay.style.display='flex'}
+function closeModal(){overlay.style.display='none';modalContent.innerHTML=''}
+function formatTotal(w,t){w=parseInt(w)||0;t=parseInt(t)||0;t=Math.min(Math.max(t,0),9);return t===0?w.toString():w+'.'+t}
+function getActiveVenue(){return config.venues.find(v=>v.id===config.activeVenueId)||null}
+function getActiveVenueIndex(){return config.venues.findIndex(v=>v.id===config.activeVenueId)}
+function getActiveLimit(){const i=getActiveVenueIndex();return i>=0?getVenueLimit(i):null}
+function getItemCountForArea(area){if(!activeStockTake)return 0;return activeStockTake.items.filter(i=>i.area===(area||'')).length}
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIG & STOCK TAKE PERSISTENCE
+// ═══════════════════════════════════════════════════════════════
+async function loadConfig(){try{const s=await dbGet('config','main');if(s)config=s}catch{}}
+async function saveConfig(){try{await dbPut('config',config,'main')}catch(e){console.error('Config save:',e)}}
+async function loadActiveStockTake(){try{const all=await dbGetAll('stocktakes','status','active');if(config.activeVenueId)activeStockTake=all.find(s=>s.venueId===config.activeVenueId)||null;else activeStockTake=all[0]||null}catch{activeStockTake=null}}
+async function saveActiveStockTake(){if(!activeStockTake)return;try{await dbPut('stocktakes',activeStockTake)}catch(e){console.error('ST save:',e)}}
+async function createStockTake(venueId,venueName){activeStockTake={id:uuid(),venueId,venueName,status:'active',createdAt:new Date().toISOString(),completedAt:null,items:[]};await saveActiveStockTake()}
+
+// ── Auto-save ────────────────────────────────────────────────
+let _savePending=false;
+function scheduleSave(){if(_savePending)return;_savePending=true;requestAnimationFrame(async()=>{await saveActiveStockTake();await saveConfig();_savePending=false})}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){saveActiveStockTake();saveConfig()}});
+window.addEventListener('beforeunload',()=>{saveActiveStockTake();saveConfig()});
+setInterval(()=>{saveActiveStockTake();saveConfig()},15000);
+
+// ═══════════════════════════════════════════════════════════════
+// MODE SWITCHING
+// ═══════════════════════════════════════════════════════════════
+function setMode(mode){
+  currentMode=mode;
+  document.getElementById('modeLookup').classList.toggle('active',mode==='lookup');
+  document.getElementById('modeStock').classList.toggle('active',mode==='stock');
+  document.getElementById('modeHistory').classList.toggle('active',mode==='history');
+  modeBadge.style.display=mode==='stock'?'block':'none';
+  resultEl.style.display='none';historySect.style.display='none';stockSect.style.display='none';contextPill.style.display='none';
+  if(mode==='stock'){
+    if(config.venues.length===0)showVenueSetupModal();
+    else if(!config.activeVenueId)showVenueSelectModal();
+    else if(!config.activeArea&&getActiveVenue()&&getActiveVenue().areas.length>0)showAreaSelectModal();
+    else enterStockMode();
+  }else if(mode==='history'){showHistory()}
+  else{const pc=typeof PRODUCTS!=='undefined'?Object.keys(PRODUCTS).length:0;setStatus(`Ready — ${pc.toLocaleString()} products loaded`);dot.className='dot'}
 }
 
-function _getTS() {
-  // Check all storage locations, use the earliest (oldest) timestamp found
-  const candidates = [];
-  try { const v = localStorage.getItem(_TK); if (v) candidates.push(parseInt(v)); } catch {}
-  try {
-    const m = document.cookie.match(new RegExp(`${_CK}=([^;]+)`));
-    if (m) candidates.push(parseInt(m[1]));
-  } catch {}
-  // Filter valid timestamps (reasonable range: after 2025)
-  const valid = candidates.filter(t => t > 1735689600000);
-  return valid.length > 0 ? Math.min(...valid) : null;
-}
-
-// Also check IndexedDB asynchronously and lock if needed
-function _checkIDB() {
-  try {
-    const r = indexedDB.open('_as', 1);
-    r.onupgradeneeded = e => e.target.result.createObjectStore('t');
-    r.onsuccess = e => {
-      try {
-        const tx = e.target.result.transaction('t','readonly');
-        const g = tx.objectStore('t').get('ts');
-        g.onsuccess = () => {
-          if (g.result) {
-            const idbTs = parseInt(g.result);
-            const syncTs = _getTS();
-            // If IDB has an older timestamp, use it
-            if (idbTs > 1735689600000 && (!syncTs || idbTs < syncTs)) {
-              _setTS(idbTs);
-              // Re-check trial with the corrected timestamp
-              const elapsed = Date.now() - idbTs;
-              const left = TRIAL_DAYS - Math.floor(elapsed / (1000*60*60*24));
-              if (left <= 0) _lockApp();
-            }
-          }
-        };
-      } catch {}
-    };
-  } catch {}
-}
-
-function _lockApp() {
-  if (typeof PRODUCTS !== 'undefined') {
-    Object.keys(PRODUCTS).forEach(k => delete PRODUCTS[k]);
-  }
-  document.body.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:30px;text-align:center;font-family:'DM Mono',monospace;color:#e8e4dc;background:#0d0d0d">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;color:#cf4444;letter-spacing:0.06em;margin-bottom:12px">Trial Expired</div>
-      <p style="color:#6b6560;font-size:0.78rem;line-height:1.7;max-width:340px;margin-bottom:24px">
-        Your 30-day testing period has ended and all product data has been cleared.
-        Contact the developer to continue using AlchoScan.
-      </p>
-      <div style="font-size:0.6rem;color:#6b6560;letter-spacing:0.15em;text-transform:uppercase">Build: Dev Preview</div>
-    </div>`;
-}
-
-function checkTrial() {
-  let ts = _getTS();
-  if (!ts) { ts = Date.now(); }
-  // Always re-persist to all locations
-  _setTS(ts);
-  const elapsed = Date.now() - ts;
-  const left = TRIAL_DAYS - Math.floor(elapsed / (1000*60*60*24));
-  if (left <= 0) { _lockApp(); return false; }
-  // Async IDB check as backup
-  _checkIDB();
-  return Math.max(left, 0);
-}
-
-const daysLeft = checkTrial();
-if (daysLeft !== false) {
-  // Show days remaining in console for debugging
-  console.log(`[AlchoScan] Trial: ${daysLeft} day(s) remaining`);
-  // Show trial banner
-  const trialBanner = document.getElementById('trialBanner');
-  const trialDaysEl = document.getElementById('trialDays');
-  if (trialBanner && trialDaysEl) {
-    trialBanner.style.display = 'flex';
-    trialDaysEl.textContent = daysLeft + ' day' + (daysLeft !== 1 ? 's' : '') + ' left';
-    // Turn yellow when > 7 days, red when <= 7
-    if (daysLeft > 7) {
-      trialBanner.style.borderColor = '#d4a017';
-      trialBanner.querySelector('span').style.color = '#d4a017';
-      trialDaysEl.style.color = '#d4a017';
-    }
-  }
-}
-
-// ── State ────────────────────────────────────────────────────
-let currentMode  = 'lookup';
-let stream = null, detector = null, rafId = null, scanning = false;
-let areas        = [];          // up to 3 area names
-let currentArea  = null;        // active area name
-let stockItems   = [];          // { barcode, name, size, area, whole, tenths }
-let pendingBarcode = null;
-
-// ── DOM ──────────────────────────────────────────────────────
-const video       = document.getElementById('video');
-const placeholder = document.getElementById('placeholder');
-const btnStart    = document.getElementById('btnStart');
-const btnStop     = document.getElementById('btnStop');
-const dot         = document.getElementById('dot');
-const spinner     = document.getElementById('spinner');
-const statusMsg   = document.getElementById('statusMsg');
-const resultEl    = document.getElementById('result');
-const scanline    = document.getElementById('scanline');
-const manualInput = document.getElementById('manualInput');
-const btnGo       = document.getElementById('btnGo');
-const stockSect   = document.getElementById('stock-section');
-const stockList   = document.getElementById('stockList');
-const stockCount  = document.getElementById('stockCount');
-const stockAreaTag= document.getElementById('stockAreaTag');
-const modeBadge   = document.getElementById('modeBadge');
-const areaPill    = document.getElementById('areaPill');
-const areaPillName= document.getElementById('areaPillName');
-const overlay     = document.getElementById('modalOverlay');
-const modalContent= document.getElementById('modalContent');
-
-// ── Helpers ──────────────────────────────────────────────────
-function setStatus(msg, state='idle') {
-  statusMsg.textContent = msg;
-  dot.className = 'dot' + (state==='on' ? ' on' : state==='err' ? ' err' : state==='blue' ? ' blue' : '');
-}
-function setLoading(on) { spinner.style.display = on ? 'block' : 'none'; }
-function esc(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
-function showModal(html) { modalContent.innerHTML = html; overlay.style.display = 'flex'; }
-function closeModal()   { overlay.style.display = 'none'; modalContent.innerHTML = ''; }
-
-// ── Mode ─────────────────────────────────────────────────────
-function setMode(mode) {
-  currentMode = mode;
-  document.getElementById('modeLookup').classList.toggle('active', mode==='lookup');
-  document.getElementById('modeStock').classList.toggle('active',  mode==='stock');
-  modeBadge.style.display = mode==='stock' ? 'block' : 'none';
-  resultEl.style.display  = 'none';
-  if (mode === 'stock') {
-    // Show area setup if no areas configured yet
-    if (areas.length === 0) {
-      showAreaSetupModal();
-    } else if (!currentArea) {
-      showAreaSelectModal();
-    }
-    updateAreaPill();
-    renderStockList();
-  } else {
-    areaPill.style.display = 'none';
-    stockSect.style.display = 'none';
-    setStatus('Ready — 2,715 products loaded');
-    dot.className = 'dot';
-  }
-}
-
-// ── Area pill ────────────────────────────────────────────────
-function updateAreaPill() {
-  if (currentMode !== 'stock') return;
-  if (currentArea) {
-    areaPill.style.display = 'flex';
-    areaPillName.textContent = currentArea;
-    stockAreaTag.textContent = currentArea;
-    setStatus('Stock Take — ' + currentArea, 'blue');
-  } else {
-    areaPill.style.display = 'none';
-    setStatus('Stock Take — select an area', 'blue');
-  }
-}
-
-// ── Area modals ───────────────────────────────────────────────
-function showAreaSetupModal() {
-  showModal(`
-    <div class="modal">
-      <div class="mhead gold">Set Up Areas</div>
-      <div class="mbody">
-        <div class="msub" style="margin-bottom:14px">Name up to 3 areas for this stock take (e.g. Bar 1, Cellar, Back Bar). Skip to count without areas.</div>
-        <div class="area-list">
-          <div class="area-row">
-            <div class="area-num">1</div>
-            <input class="area-input" id="area1" placeholder="e.g. Bar 1" maxlength="30" />
-          </div>
-          <div class="area-row">
-            <div class="area-num">2</div>
-            <input class="area-input" id="area2" placeholder="e.g. Bar 2" maxlength="30" />
-          </div>
-          <div class="area-row">
-            <div class="area-num">3</div>
-            <input class="area-input" id="area3" placeholder="e.g. Cellar" maxlength="30" />
-          </div>
-          <div class="area-locked-row">
-            <div class="area-num" style="color:#333">4</div>
-            <div class="area-locked-text">More areas</div>
-            <div class="premium-tag">Premium</div>
-          </div>
-          <div class="area-locked-row">
-            <div class="area-num" style="color:#333">5–10</div>
-            <div class="area-locked-text">Multi-venue support</div>
-            <div class="premium-tag">Premium</div>
-          </div>
-        </div>
-        <div class="mbtns">
-          <button class="btn primary" style="flex:2" onclick="saveAreas()">Save &amp; Continue</button>
-        </div>
-        <div class="area-skip" onclick="skipAreas()">Skip — count without areas</div>
-      </div>
-    </div>`);
-  setTimeout(() => { const a = document.getElementById('area1'); if (a) a.focus(); }, 100);
-}
-
-function saveAreas() {
-  const a1 = document.getElementById('area1').value.trim();
-  const a2 = document.getElementById('area2').value.trim();
-  const a3 = document.getElementById('area3').value.trim();
-  areas = [a1, a2, a3].filter(Boolean);
-  if (areas.length === 0) { skipAreas(); return; }
-  closeModal();
-  // If more than one area, ask which to start with
-  if (areas.length > 1) {
-    showAreaSelectModal();
-  } else {
-    currentArea = areas[0];
-    updateAreaPill();
-  }
-}
-
-function skipAreas() {
-  areas = [];
-  currentArea = null;
-  closeModal();
-  updateAreaPill();
-  setStatus('Stock Take — scanning (no area)', 'blue');
-}
-
-function showAreaSelectModal() {
-  const opts = areas.map(a => `
-    <button class="area-opt${currentArea===a?' selected':''}" onclick="selectArea('${esc(a)}')">
-      <span>${a}</span><span class="area-select-arrow">→</span>
-    </button>`).join('');
-  showModal(`
-    <div class="modal">
-      <div class="mhead blue">Select Area</div>
-      <div class="mbody">
-        <div class="msub">Which area are you counting now?</div>
-        <div class="area-select-list">${opts}</div>
-        <div class="mbtns">
-          <button class="btn" onclick="closeModal()">Cancel</button>
-          <button class="btn" onclick="showAreaSetupModal()">✏️ Edit Areas</button>
-        </div>
-      </div>
-    </div>`);
-}
-
-function selectArea(name) {
-  currentArea = name;
-  closeModal();
-  updateAreaPill();
+async function enterStockMode(){
+  updateContextPill();
+  await loadActiveStockTake();
+  if(!activeStockTake||activeStockTake.venueId!==config.activeVenueId){const v=getActiveVenue();if(v)await createStockTake(v.id,v.name)}
   renderStockList();
+  const v=getActiveVenue();
+  setStatus(`Stock Take — ${v?v.name:''} / ${config.activeArea||''}`, 'blue');
 }
 
-// ── Camera ────────────────────────────────────────────────────
-async function startCamera() {
-  try {
-    setStatus('Requesting camera…');
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
-    });
-    video.srcObject = stream;
-    await video.play();
-    video.style.display = 'block';
-    placeholder.style.display = 'none';
-    scanline.style.display = 'block';
-    scanning = true;
-    btnStart.disabled = true;
-    btnStop.disabled = false;
-    if ('BarcodeDetector' in window) {
-      detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39'] });
-      setStatus('Scanning — point at barcode', 'on');
-      loop();
-    } else {
-      setStatus('Camera on — use manual entry below', 'err');
-    }
-  } catch(e) { setStatus('Camera error: ' + (e.message||e), 'err'); }
-}
-
-function loop() {
-  if (!scanning || !video.srcObject) return;
-  if (video.readyState < 2) { rafId = requestAnimationFrame(loop); return; }
-  detector.detect(video).then(codes => {
-    if (codes.length > 0) { stopCamera(); handleBarcode(codes[0].rawValue); }
-    else { rafId = requestAnimationFrame(loop); }
-  }).catch(() => { rafId = requestAnimationFrame(loop); });
-}
-
-function stopCamera() {
-  if (rafId) cancelAnimationFrame(rafId);
-  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  video.srcObject = null;
-  video.style.display = 'none';
-  placeholder.style.display = 'flex';
-  scanline.style.display = 'none';
-  scanning = false;
-  btnStart.disabled = false;
-  btnStop.disabled = true;
-}
-
-function restartCamera() {
-  setTimeout(() => { if (!scanning) startCamera(); }, 400);
-}
-
-// ── Barcode routing ───────────────────────────────────────────
-function handleBarcode(code) {
-  const barcode = code.trim().replace(/\D/g,'');
-  if (!barcode) return;
-  if (currentMode === 'stock') handleStockScan(barcode);
-  else lookupAndShow(barcode);
-}
-
-// ── Lookup mode ───────────────────────────────────────────────
-async function lookupAndShow(barcode) {
-  setLoading(true);
-  setStatus('Looking up ' + barcode + '…');
-  const local = resolveProduct(barcode);
-  if (local) {
-    showResult(barcode, local.name, local.size, local.source);
-    setStatus('Product found ✓', 'on');
-  } else {
-    const off = await lookupOFF(barcode);
-    if (off) {
-      showResult(barcode, off.name, off.size, 'Open Food Facts');
-      setStatus('Product found (Open Food Facts) ✓', 'on');
-    } else {
-      showNotFound(barcode);
-      setStatus('Not found in any database', 'err');
-    }
+function updateContextPill(){
+  if(currentMode!=='stock'){contextPill.style.display='none';return}
+  const v=getActiveVenue(),lim=getActiveLimit();
+  if(v){
+    contextPill.style.display='block';
+    ctxVenue.textContent=(config.groupName?config.groupName+' — ':'')+v.name;
+    ctxArea.textContent=config.activeArea||'(no area)';
+    if(lim){const c=getItemCountForArea(config.activeArea);ctxLimit.textContent=`${c} / ${lim.maxItems} items`;ctxLimit.style.color=c>=lim.maxItems?'var(--red)':'var(--muted)'}
+    else ctxLimit.textContent='';
   }
-  setLoading(false);
 }
 
-// ── Stock mode ────────────────────────────────────────────────
-async function handleStockScan(barcode) {
-  setLoading(true);
-  setStatus('Looking up ' + barcode + '…', 'blue');
-  let product = resolveProduct(barcode);
-  if (!product) {
-    const off = await lookupOFF(barcode);
-    if (off) product = { name: off.name, size: off.size, source: 'Open Food Facts' };
-  }
-  setLoading(false);
-  if (!product) {
-    showUnknownModal(barcode);
-    return;
-  }
-  const existing = stockItems.find(i => i.barcode === barcode && i.area === (currentArea||''));
-  if (existing) showDuplicateModal(barcode, product, existing);
-  else showStockEntryModal(barcode, product);
+// ═══════════════════════════════════════════════════════════════
+// VENUE SETUP (first time)
+// ═══════════════════════════════════════════════════════════════
+function showVenueSetupModal(){
+  showModal(`<div class="modal"><div class="mhead gold">Set Up Your Venue</div><div class="mbody">
+    <div class="msub">Enter your group and venue details to get started.</div>
+    <div class="setup-field"><div class="qty-label" style="margin-bottom:6px">Group / Company Name</div><input class="setup-input" id="setupGroup" placeholder="e.g. Murphy's Hospitality" maxlength="60" value="${esc(config.groupName)}" /></div>
+    <div class="setup-field"><div class="qty-label" style="margin-bottom:6px">Venue 1 Name</div><input class="setup-input" id="setupVenue1" placeholder="e.g. The Crown Bar" maxlength="60" /></div>
+    <div class="qty-label" style="margin-bottom:6px;margin-top:4px">Areas for Venue 1 (up to 2)</div>
+    <div class="area-list"><div class="area-row"><div class="area-num">1</div><input class="area-input" id="setupArea1" placeholder="e.g. Main Bar" maxlength="30" /></div><div class="area-row"><div class="area-num">2</div><input class="area-input" id="setupArea2" placeholder="e.g. Cellar" maxlength="30" /></div></div>
+    <div class="mbtns"><button class="btn primary" style="flex:1" onclick="saveVenueSetup()">Save &amp; Start</button></div>
+  </div></div>`);
+  setTimeout(()=>{const el=document.getElementById('setupGroup');if(el)el.focus()},100);
 }
 
-// ── Product lookup ────────────────────────────────────────────
-function resolveProduct(barcode) {
-  if (typeof PRODUCTS !== 'undefined' && PRODUCTS[barcode]) {
-    const p = PRODUCTS[barcode];
-    return { name: p.n, size: p.s||'—', source: 'Wholesaler DB' };
-  }
-  return null;
+async function saveVenueSetup(){
+  const group=document.getElementById('setupGroup').value.trim();
+  const v1=document.getElementById('setupVenue1').value.trim();
+  const a1=document.getElementById('setupArea1').value.trim();
+  const a2=document.getElementById('setupArea2').value.trim();
+  if(!v1){document.getElementById('setupVenue1').style.borderColor='var(--red)';return}
+  const areas=[a1,a2].filter(Boolean);
+  const vid=uuid();
+  config.groupName=group;config.venues=[{id:vid,name:v1,areas}];config.activeVenueId=vid;config.activeArea=areas[0]||null;
+  await saveConfig();closeModal();await enterStockMode();
 }
 
-async function lookupOFF(barcode) {
-  try {
-    const res  = await fetch('https://world.openfoodfacts.org/api/v0/product/' + barcode + '.json');
-    const data = await res.json();
-    if (data.status !== 1 || !data.product) return null;
-    const p = data.product;
-    const name = p.product_name || p.product_name_en || p.generic_name;
-    if (!name) return null;
-    return { name, size: p.quantity||'—' };
-  } catch { return null; }
+// ═══════════════════════════════════════════════════════════════
+// ADD VENUE
+// ═══════════════════════════════════════════════════════════════
+function showAddVenueModal(){
+  if(config.venues.length>=LIMITS.maxVenues){showPremiumModal('venues');return}
+  const isSecond=config.venues.length===1;
+  const aLim=isSecond?LIMITS.v[1].maxAreas:LIMITS.v[0].maxAreas;
+  const iLim=isSecond?LIMITS.v[1].maxItems:LIMITS.v[0].maxItems;
+  let areaRows=`<div class="area-row"><div class="area-num">1</div><input class="area-input" id="newVenueArea1" placeholder="e.g. Main Bar" maxlength="30" /></div>`;
+  if(aLim>=2)areaRows+=`<div class="area-row"><div class="area-num">2</div><input class="area-input" id="newVenueArea2" placeholder="e.g. Cellar" maxlength="30" /></div>`;
+  showModal(`<div class="modal"><div class="mhead blue">Add Venue ${config.venues.length+1}</div><div class="mbody">
+    <div class="msub">${isSecond?`Dev preview: ${aLim} area, ${iLim} items max`:''}</div>
+    <div class="setup-field"><div class="qty-label" style="margin-bottom:6px">Venue Name</div><input class="setup-input" id="newVenueName" placeholder="e.g. The Duke" maxlength="60" /></div>
+    <div class="qty-label" style="margin-bottom:6px">Areas (up to ${aLim})</div>
+    <div class="area-list">${areaRows}</div>
+    <div class="mbtns"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" style="flex:2" onclick="saveNewVenue()">Add Venue</button></div>
+  </div></div>`);
 }
 
-// ── Stock entry modal ─────────────────────────────────────────
-function showStockEntryModal(barcode, product, prefill=null) {
-  const w = prefill ? prefill.whole  : 0;
-  const t = prefill ? prefill.tenths : 0;
-  const areaTxt = currentArea ? ` · ${currentArea}` : '';
-  showModal(`
-    <div class="modal">
-      <div class="mhead blue">📦 Enter Stock Quantity</div>
-      <div class="mbody">
-        <div class="mproduct">${product.name}</div>
-        <div class="msub">${barcode}${product.size && product.size!=='—' ? ' · '+product.size : ''}${areaTxt}</div>
-        <div class="qty-grid">
-          <div class="qty-field">
-            <label class="qty-label">Whole Bottles</label>
-            <input class="qty-input" type="number" id="qtyWhole" min="0" max="9999" value="${w}" />
-          </div>
-          <div class="qty-field">
-            <label class="qty-label">Tenths</label>
-            <input class="qty-input" type="number" id="qtyTenths" min="1" max="9" value="${t}" placeholder="—" />
-            <div class="qty-hint">1 – 9 (open bottle only)</div>
-          </div>
-        </div>
-        <div class="total-row">
-          <span class="total-lbl">Total</span>
-          <span class="total-val" id="totalVal">${formatTotal(w,t)}</span>
-        </div>
-        <div class="mbtns">
-          <button class="btn" style="flex:1" onclick="closeModal(); restartCamera()">Cancel</button>
-          <button class="btn primary" style="flex:2" onclick="confirmStock('${esc(barcode)}','${esc(product.name)}','${esc(product.size)}')">Confirm</button>
-        </div>
-      </div>
-    </div>`);
-  ['qtyWhole','qtyTenths'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updateTotal);
-  });
-  const w0 = document.getElementById('qtyWhole');
-  w0.focus(); w0.select();
+async function saveNewVenue(){
+  const name=document.getElementById('newVenueName').value.trim();
+  if(!name){document.getElementById('newVenueName').style.borderColor='var(--red)';return}
+  const a1=document.getElementById('newVenueArea1').value.trim();
+  const a2El=document.getElementById('newVenueArea2');
+  const a2=a2El?a2El.value.trim():'';
+  const areas=[a1,a2].filter(Boolean);
+  const vid=uuid();
+  config.venues.push({id:vid,name,areas});config.activeVenueId=vid;config.activeArea=areas[0]||null;
+  await saveConfig();closeModal();activeStockTake=null;await enterStockMode();
 }
 
-function formatTotal(whole, tenths) {
-  whole  = parseInt(whole)  || 0;
-  tenths = parseInt(tenths) || 0;
-  tenths = Math.min(Math.max(tenths, 0), 9);
-  if (tenths === 0) return whole.toString();
-  return whole + '.' + tenths;
-}
-
-function updateTotal() {
-  const w = parseInt(document.getElementById('qtyWhole').value)  || 0;
-  let   t = parseInt(document.getElementById('qtyTenths').value) || 0;
-  t = Math.min(Math.max(t, 0), 9);
-  document.getElementById('totalVal').textContent = formatTotal(w, t);
-}
-
-function confirmStock(barcode, name, size) {
-  const whole  = parseInt(document.getElementById('qtyWhole').value)  || 0;
-  const tenths = Math.min(parseInt(document.getElementById('qtyTenths').value) || 0, 9);
-  const area   = currentArea || '';
-  const idx    = stockItems.findIndex(i => i.barcode === barcode && i.area === area);
-  if (idx >= 0) stockItems[idx] = { barcode, name, size, area, whole, tenths };
-  else           stockItems.push({ barcode, name, size, area, whole, tenths });
-  closeModal();
-  renderStockList();
-  setStatus(`Saved: ${name} — ${formatTotal(whole,tenths)}`, 'blue');
-  restartCamera();
-}
-
-// ── Duplicate modal ───────────────────────────────────────────
-function showDuplicateModal(barcode, product, existing) {
-  const tot = formatTotal(existing.whole, existing.tenths);
-  showModal(`
-    <div class="modal">
-      <div class="mhead gold">Already Scanned</div>
-      <div class="mbody">
-        <div class="mproduct">${product.name}</div>
-        <div class="msub">
-          Current entry: <strong style="color:var(--accent)">${existing.whole} bottle${existing.whole!==1?'s':''} + ${existing.tenths} tenth${existing.tenths!==1?'s':''} = ${tot}</strong>
-          ${existing.area ? '<br>Area: ' + existing.area : ''}
-        </div>
-        <div class="mbtns col">
-          <button class="btn primary" onclick="editExisting('${esc(barcode)}',${JSON.stringify(product).replace(/"/g,'&quot;')})">
-            ✏️ Edit existing entry
-          </button>
-          <button class="btn blue" onclick="addToExisting('${esc(barcode)}','${esc(product.name)}','${esc(product.size)}')">
-            ➕ Add to previous count
-          </button>
-          <button class="btn danger" onclick="deleteAndReenter('${esc(barcode)}',${JSON.stringify(product).replace(/"/g,'&quot;')})">
-            🗑 Delete &amp; re-enter
-          </button>
-          <button class="btn" onclick="closeModal(); restartCamera()">↩ Keep &amp; scan next</button>
-        </div>
-      </div>
-    </div>`);
-}
-
-function editExisting(barcode, product) {
-  const existing = stockItems.find(i => i.barcode === barcode && i.area === (currentArea||''));
-  closeModal();
-  showStockEntryModal(barcode, product, existing);
-}
-
-function addToExisting(barcode, name, size) {
-  const area = currentArea || '';
-  const idx  = stockItems.findIndex(i => i.barcode === barcode && i.area === area);
-  if (idx < 0) { closeModal(); return; }
-  closeModal();
-  // Show entry modal but add to existing on confirm
-  const existing = stockItems[idx];
-  showModal(`
-    <div class="modal">
-      <div class="mhead blue">➕ Add to Count</div>
-      <div class="mbody">
-        <div class="mproduct">${name}</div>
-        <div class="msub">Current: ${formatTotal(existing.whole, existing.tenths)} — enter amount to add</div>
-        <div class="qty-grid">
-          <div class="qty-field">
-            <label class="qty-label">Add Whole Bottles</label>
-            <input class="qty-input" type="number" id="addWhole" min="0" max="9999" value="0" />
-          </div>
-          <div class="qty-field">
-            <label class="qty-label">Add Tenths</label>
-            <input class="qty-input" type="number" id="addTenths" min="0" max="9" value="0" />
-            <div class="qty-hint">1 – 9</div>
-          </div>
-        </div>
-        <div class="total-row">
-          <span class="total-lbl">New Total</span>
-          <span class="total-val" id="addTotalVal">${formatTotal(existing.whole, existing.tenths)}</span>
-        </div>
-        <div class="mbtns">
-          <button class="btn" style="flex:1" onclick="closeModal(); restartCamera()">Cancel</button>
-          <button class="btn primary" style="flex:2" onclick="confirmAdd('${esc(barcode)}','${esc(name)}','${esc(size)}',${existing.whole},${existing.tenths})">Confirm</button>
-        </div>
-      </div>
-    </div>`);
-  ['addWhole','addTenths'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
-      const aw = (parseInt(document.getElementById('addWhole').value)||0) + existing.whole;
-      let   at = (parseInt(document.getElementById('addTenths').value)||0) + existing.tenths;
-      const carry = Math.floor(at / 10);
-      at = at % 10;
-      document.getElementById('addTotalVal').textContent = formatTotal(aw + carry, at);
-    });
-  });
-}
-
-function confirmAdd(barcode, name, size, existingWhole, existingTenths) {
-  const addW   = parseInt(document.getElementById('addWhole').value)  || 0;
-  const addT   = parseInt(document.getElementById('addTenths').value) || 0;
-  let newWhole  = existingWhole + addW;
-  let newTenths = existingTenths + addT;
-  const carry   = Math.floor(newTenths / 10);
-  newTenths     = newTenths % 10;
-  newWhole     += carry;
-  const area    = currentArea || '';
-  const idx     = stockItems.findIndex(i => i.barcode === barcode && i.area === area);
-  if (idx >= 0) stockItems[idx] = { barcode, name, size, area, whole: newWhole, tenths: newTenths };
-  closeModal();
-  renderStockList();
-  setStatus(`Updated: ${name} — ${formatTotal(newWhole, newTenths)}`, 'blue');
-  restartCamera();
-}
-
-function deleteAndReenter(barcode, product) {
-  stockItems = stockItems.filter(i => !(i.barcode === barcode && i.area === (currentArea||'')));
-  renderStockList();
-  closeModal();
-  showStockEntryModal(barcode, product);
-}
-
-// ── Unknown product modal ─────────────────────────────────────
-function showUnknownModal(barcode) {
-  showModal(`
-    <div class="modal">
-      <div class="mhead red">Product Not Found</div>
-      <div class="mbody">
-        <div class="mproduct" style="color:var(--muted);font-size:1rem">${barcode}</div>
-        <div class="msub">Not in any database. Enter the product name to continue.</div>
-        <div style="margin-bottom:14px">
-          <div class="qty-label" style="margin-bottom:6px">Product Name</div>
-          <input id="unknownName" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:0.85rem;padding:9px 10px;border-radius:2px;outline:none" placeholder="e.g. Smirnoff Vodka 70cl" />
-        </div>
-        <div class="mbtns">
-          <button class="btn" style="flex:1" onclick="closeModal(); restartCamera()">Skip</button>
-          <button class="btn primary" style="flex:2" onclick="continueUnknown('${esc(barcode)}')">Continue</button>
-        </div>
-      </div>
-    </div>`);
-  setTimeout(() => { const n = document.getElementById('unknownName'); if (n) n.focus(); }, 100);
-}
-
-function continueUnknown(barcode) {
-  const name = document.getElementById('unknownName').value.trim();
-  if (!name) { document.getElementById('unknownName').style.borderColor='var(--red)'; return; }
-  closeModal();
-  showStockEntryModal(barcode, { name, size: '—', source: 'Manual entry' });
-}
-
-// ── Premium upsell modal ──────────────────────────────────────
-function showPremiumModal(feature) {
-  showModal(`
-    <div class="modal">
-      <div class="mhead gold">🔒 Premium Feature</div>
-      <div class="mbody">
-        <div class="mproduct">Unlock Premium</div>
-        <div class="msub">This feature is available on the Premium plan.</div>
-        <div class="premium-features">
-          <div class="pf-row"><div class="pf-icon">📊</div><div class="pf-text">Combined export across all areas<span>Merge Bar 1, Bar 2, Cellar into one spreadsheet</span></div></div>
-          <div class="pf-row"><div class="pf-icon">📍</div><div class="pf-text">4–10 areas per stock take<span>Free tier limited to 3 areas</span></div></div>
-          <div class="pf-row"><div class="pf-icon">🏢</div><div class="pf-text">Multi-venue support<span>Manage stock across multiple sites</span></div></div>
-          <div class="pf-row"><div class="pf-icon">📅</div><div class="pf-text">Stock history &amp; trends<span>Compare previous stock takes over time</span></div></div>
-        </div>
-        <div class="mbtns">
-          <button class="btn" style="flex:1" onclick="closeModal()">Not Now</button>
-          <button class="btn primary" style="flex:2" onclick="closeModal()">Coming Soon</button>
-        </div>
-      </div>
-    </div>`);
-}
-
-// ── Stock list ────────────────────────────────────────────────
-function renderStockList() {
-  const filtered = currentArea
-    ? stockItems.filter(i => i.area === currentArea)
-    : stockItems;
-  stockSect.style.display  = currentMode === 'stock' && filtered.length > 0 ? 'block' : 'none';
-  stockCount.textContent   = filtered.length + (filtered.length===1 ? ' item' : ' items');
-  stockAreaTag.textContent = currentArea || '';
-  stockAreaTag.style.display = currentArea ? 'inline-block' : 'none';
-  stockList.innerHTML = filtered.map((item, idx) => {
-    const globalIdx = stockItems.indexOf(item);
-    return `
-      <div class="stock-item">
-        <div class="stock-item-info">
-          <div class="stock-item-name">${item.name}</div>
-          <div class="stock-item-meta">${item.barcode}${item.size && item.size!=='—' ? ' · '+item.size : ''}</div>
-        </div>
-        <div class="stock-item-qty">${formatTotal(item.whole, item.tenths)}</div>
-        <button class="stock-item-del" onclick="deleteItem(${globalIdx})">×</button>
-      </div>`;
+// ═══════════════════════════════════════════════════════════════
+// VENUE SELECT
+// ═══════════════════════════════════════════════════════════════
+function showVenueSelectModal(){
+  const opts=config.venues.map((v,idx)=>{
+    const lim=getVenueLimit(idx);const isA=v.id===config.activeVenueId;
+    const badge=idx===1?`<span class="sel-badge" style="background:var(--accent2);color:var(--accent)">Limited</span>`:'';
+    return `<button class="sel-opt${isA?' active':''}" onclick="selectVenue('${v.id}')"><div><span>${esc(v.name)}</span><br><span class="sel-sub">${v.areas.length} area${v.areas.length!==1?'s':''} · ${lim?lim.maxItems+' items/area':''}</span></div>${badge}</button>`;
   }).join('');
+  const addBtn=config.venues.length<LIMITS.maxVenues
+    ?`<button class="btn blue" onclick="closeModal();showAddVenueModal()">+ Add Venue</button>`
+    :`<button class="btn locked" onclick="showPremiumModal('venues')">+ Add Venue 🔒</button>`;
+  showModal(`<div class="modal"><div class="mhead blue">Select Venue</div><div class="mbody">
+    <div class="msub">${esc(config.groupName)||'Your venues'}</div>
+    <div class="select-list">${opts}</div>
+    <div class="area-locked-row" style="margin-top:6px"><div class="area-locked-text">Venues 3 – 5</div><div class="premium-tag">Premium</div></div>
+    <div class="mbtns" style="margin-top:14px"><button class="btn" onclick="closeModal()">Cancel</button>${addBtn}</div>
+  </div></div>`);
 }
 
-function deleteItem(idx) {
-  stockItems.splice(idx, 1);
-  renderStockList();
+async function selectVenue(venueId){
+  config.activeVenueId=venueId;const v=getActiveVenue();
+  config.activeArea=v&&v.areas.length>0?v.areas[0]:null;
+  await saveConfig();closeModal();
+  if(v&&v.areas.length>1)showAreaSelectModal();
+  else{activeStockTake=null;await enterStockMode()}
 }
 
-function clearStock() {
-  const areaLabel = currentArea ? ` for ${currentArea}` : '';
-  if (!confirm(`Clear all stock entries${areaLabel}?`)) return;
-  if (currentArea) {
-    stockItems = stockItems.filter(i => i.area !== currentArea);
-  } else {
-    stockItems = [];
-  }
-  renderStockList();
-  setStatus('Stock cleared', 'blue');
+// ═══════════════════════════════════════════════════════════════
+// AREA SELECT
+// ═══════════════════════════════════════════════════════════════
+function showAreaSelectModal(){
+  const v=getActiveVenue();
+  if(!v||v.areas.length===0){config.activeArea=null;enterStockMode();return}
+  const opts=v.areas.map(a=>`<button class="sel-opt${config.activeArea===a?' active':''}" onclick="selectArea('${escAttr(a)}')">${esc(a)}</button>`).join('');
+  showModal(`<div class="modal"><div class="mhead blue">Select Area — ${esc(v.name)}</div><div class="mbody">
+    <div class="msub">Which area are you counting?</div>
+    <div class="select-list">${opts}</div>
+    <div class="mbtns"><button class="btn" onclick="closeModal()">Cancel</button></div>
+  </div></div>`);
 }
 
-// ── JSON export ──────────────────────────────────────────────
-function exportCSV() {
-  const filtered = currentArea
-    ? stockItems.filter(i => i.area === currentArea)
-    : stockItems;
-  if (filtered.length === 0) { setStatus('No items to export', 'err'); return; }
-  const payload = {
-    _v: 1,
-    exported: new Date().toISOString(),
-    area: currentArea || null,
-    items: filtered.map(i => ({
-      b: i.barcode,
-      n: i.name,
-      s: i.size,
-      w: i.whole,
-      t: i.tenths || 0,
-      tot: parseFloat(formatTotal(i.whole, i.tenths))
-    }))
-  };
-  const json = JSON.stringify(payload);
-  const blob = new Blob([json], { type:'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const date = new Date().toISOString().slice(0,10);
-  const area = currentArea ? '_' + currentArea.replace(/\s+/g,'_') : '';
-  a.href     = url;
-  a.download = `stocktake${area}_${date}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  setStatus(`Exported ${filtered.length} items`, 'blue');
+async function selectArea(name){config.activeArea=name;await saveConfig();closeModal();await enterStockMode()}
+
+// ═══════════════════════════════════════════════════════════════
+// CAMERA
+// ═══════════════════════════════════════════════════════════════
+async function startCamera(){try{setStatus('Requesting camera…');stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}}});video.srcObject=stream;await video.play();video.style.display='block';placeholder.style.display='none';scanline.style.display='block';scanning=true;btnStart.disabled=true;btnStop.disabled=false;if('BarcodeDetector' in window){detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});setStatus('Scanning — point at barcode','on');loop()}else setStatus('Camera on — use manual entry','err')}catch(e){setStatus('Camera error: '+(e.message||e),'err')}}
+function loop(){if(!scanning||!video.srcObject)return;if(video.readyState<2){rafId=requestAnimationFrame(loop);return}detector.detect(video).then(codes=>{if(codes.length>0){stopCamera();handleBarcode(codes[0].rawValue)}else rafId=requestAnimationFrame(loop)}).catch(()=>rafId=requestAnimationFrame(loop))}
+function stopCamera(){if(rafId)cancelAnimationFrame(rafId);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;video.style.display='none';placeholder.style.display='flex';scanline.style.display='none';scanning=false;btnStart.disabled=false;btnStop.disabled=true}
+function restartCamera(){setTimeout(()=>{if(!scanning)startCamera()},400)}
+
+// ═══════════════════════════════════════════════════════════════
+// BARCODE ROUTING
+// ═══════════════════════════════════════════════════════════════
+function handleBarcode(code){const bc=code.trim().replace(/\D/g,'');if(!bc)return;if(currentMode==='stock')handleStockScan(bc);else lookupAndShow(bc)}
+
+// ═══════════════════════════════════════════════════════════════
+// LOOKUP MODE
+// ═══════════════════════════════════════════════════════════════
+async function lookupAndShow(barcode){setLoading(true);setStatus('Looking up '+barcode+'…');const local=resolveProduct(barcode);if(local){showResult(barcode,local.name,local.size,local.source);setStatus('Product found ✓','on')}else{const off=await lookupOFF(barcode);if(off){showResult(barcode,off.name,off.size,'Open Food Facts');setStatus('Product found (OFF) ✓','on')}else{showNotFound(barcode);setStatus('Not found','err')}}setLoading(false)}
+function resolveProduct(barcode){if(typeof PRODUCTS!=='undefined'&&PRODUCTS[barcode]){const p=PRODUCTS[barcode];return{name:p.n,size:p.s||'—',source:'Wholesaler DB'}}return null}
+async function lookupOFF(barcode){try{const res=await fetch('https://world.openfoodfacts.org/api/v0/product/'+barcode+'.json');const data=await res.json();if(data.status!==1||!data.product)return null;const p=data.product;const name=p.product_name||p.product_name_en||p.generic_name;if(!name)return null;return{name,size:p.quantity||'—'}}catch{return null}}
+function showResult(barcode,name,size,source){resultEl.style.display='block';resultEl.innerHTML=`<div class="rhead">✓ Product Identified</div><div class="rbody"><div class="pname">${esc(name)}</div><div class="meta"><div class="mi"><span class="ml">Barcode</span><span class="mv bc">${barcode}</span></div><div class="mi"><span class="ml">Size</span><span class="mv">${esc(size)||'—'}</span></div></div><div class="src-badge">Source: ${esc(source)}</div></div>`}
+function showNotFound(barcode){resultEl.style.display='block';resultEl.innerHTML=`<div class="rhead err">Not Found</div><div class="rbody"><div class="pname" style="color:var(--muted)">${barcode}</div><p style="font-size:.7rem;color:var(--muted);line-height:1.6;margin-top:8px">Not in wholesaler database or Open Food Facts.</p></div>`}
+
+// ═══════════════════════════════════════════════════════════════
+// STOCK MODE — SCANNING
+// ═══════════════════════════════════════════════════════════════
+async function handleStockScan(barcode){
+  const lim=getActiveLimit(),area=config.activeArea||'';
+  if(lim&&activeStockTake){const count=activeStockTake.items.filter(i=>i.area===area).length;const isDup=activeStockTake.items.some(i=>i.barcode===barcode&&i.area===area);if(count>=lim.maxItems&&!isDup){setStatus(`Limit reached (${lim.maxItems})`,'err');showModal(`<div class="modal"><div class="mhead red">Item Limit Reached</div><div class="mbody"><div class="msub">This area has reached its maximum of ${lim.maxItems} items for the dev preview.</div><div class="mbtns"><button class="btn" onclick="closeModal();restartCamera()">OK</button></div></div></div>`);return}}
+  setLoading(true);setStatus('Looking up '+barcode+'…','blue');
+  let product=resolveProduct(barcode);if(!product){const off=await lookupOFF(barcode);if(off)product={name:off.name,size:off.size,source:'Open Food Facts'}}
+  setLoading(false);
+  if(!product){showUnknownModal(barcode);return}
+  if(activeStockTake){const existing=activeStockTake.items.find(i=>i.barcode===barcode&&i.area===area);if(existing){showDuplicateModal(barcode,product,existing);return}}
+  showStockEntryModal(barcode,product);
 }
 
-// ── Lookup result rendering ───────────────────────────────────
-function showResult(barcode, name, size, source) {
-  resultEl.style.display = 'block';
-  resultEl.innerHTML = `
-    <div class="rhead">✓ Product Identified</div>
-    <div class="rbody">
-      <div class="pname">${name}</div>
-      <div class="meta">
-        <div class="mi"><span class="ml">Barcode</span><span class="mv bc">${barcode}</span></div>
-        <div class="mi"><span class="ml">Size</span><span class="mv">${size||'—'}</span></div>
-      </div>
-      <div class="src-badge">Source: ${source}</div>
-    </div>`;
+// ═══════════════════════════════════════════════════════════════
+// STOCK ENTRY MODAL
+// ═══════════════════════════════════════════════════════════════
+function showStockEntryModal(barcode,product,prefill=null){
+  const w=prefill?prefill.whole:0,t=prefill?prefill.tenths:0;
+  const v=getActiveVenue(),areaTxt=config.activeArea?' · '+esc(config.activeArea):'';
+  showModal(`<div class="modal"><div class="mhead blue">📦 Enter Stock Quantity</div><div class="mbody">
+    <div class="mproduct">${esc(product.name)}</div>
+    <div class="msub">${barcode}${product.size&&product.size!=='—'?' · '+esc(product.size):''}${areaTxt}<br>${v?esc(v.name):''}</div>
+    <div class="qty-grid"><div class="qty-field"><label class="qty-label">Whole Bottles</label><input class="qty-input" type="number" id="qtyWhole" min="0" max="9999" value="${w}" /></div><div class="qty-field"><label class="qty-label">Tenths</label><input class="qty-input" type="number" id="qtyTenths" min="0" max="9" value="${t}" placeholder="—" /><div class="qty-hint">1 – 9 (open bottle)</div></div></div>
+    <div class="total-row"><span class="total-lbl">Total</span><span class="total-val" id="totalVal">${formatTotal(w,t)}</span></div>
+    <div class="mbtns"><button class="btn" style="flex:1" onclick="closeModal();restartCamera()">Cancel</button><button class="btn primary" style="flex:2" onclick="confirmStock('${escAttr(barcode)}','${escAttr(product.name)}','${escAttr(product.size)}')">Confirm</button></div>
+  </div></div>`);
+  ['qtyWhole','qtyTenths'].forEach(id=>{document.getElementById(id).addEventListener('input',()=>{const wv=parseInt(document.getElementById('qtyWhole').value)||0;let tv=parseInt(document.getElementById('qtyTenths').value)||0;tv=Math.min(Math.max(tv,0),9);document.getElementById('totalVal').textContent=formatTotal(wv,tv)})});
+  const w0=document.getElementById('qtyWhole');w0.focus();w0.select();
 }
 
-function showNotFound(barcode) {
-  resultEl.style.display = 'block';
-  resultEl.innerHTML = `
-    <div class="rhead err">Not Found</div>
-    <div class="rbody">
-      <div class="pname" style="color:var(--muted)">${barcode}</div>
-      <p style="font-size:0.7rem;color:var(--muted);line-height:1.6;margin-top:8px">Not in wholesaler database or Open Food Facts.</p>
-    </div>`;
+async function confirmStock(barcode,name,size){
+  if(!activeStockTake)return;
+  const whole=parseInt(document.getElementById('qtyWhole').value)||0;const tenths=Math.min(parseInt(document.getElementById('qtyTenths').value)||0,9);const area=config.activeArea||'';
+  const idx=activeStockTake.items.findIndex(i=>i.barcode===barcode&&i.area===area);
+  if(idx>=0)activeStockTake.items[idx]={barcode,name,size,area,whole,tenths};
+  else activeStockTake.items.push({barcode,name,size,area,whole,tenths});
+  await saveActiveStockTake();closeModal();renderStockList();updateContextPill();
+  setStatus(`Saved: ${name} — ${formatTotal(whole,tenths)}`,'blue');restartCamera();
 }
 
-// ── Events ────────────────────────────────────────────────────
-btnStart.addEventListener('click', startCamera);
-btnStop.addEventListener('click', stopCamera);
-btnGo.addEventListener('click', () => handleBarcode(manualInput.value));
-manualInput.addEventListener('keydown', e => { if (e.key==='Enter') handleBarcode(manualInput.value); });
-</script>
-</body>
-</html>
+// ═══════════════════════════════════════════════════════════════
+// DUPLICATE MODAL
+// ═══════════════════════════════════════════════════════════════
+function showDuplicateModal(barcode,product,existing){
+  const tot=formatTotal(existing.whole,existing.tenths);
+  showModal(`<div class="modal"><div class="mhead gold">Already Scanned</div><div class="mbody">
+    <div class="mproduct">${esc(product.name)}</div>
+    <div class="msub">Current: <strong style="color:var(--accent)">${tot}</strong>${existing.area?' · '+esc(existing.area):''}</div>
+    <div class="mbtns col">
+      <button class="btn primary" onclick="editExisting('${escAttr(barcode)}',${JSON.stringify(product).replace(/'/g,'&#39;').replace(/"/g,'&quot;')})">✏️ Edit entry</button>
+      <button class="btn blue" onclick="addToExisting('${escAttr(barcode)}','${escAttr(product.name)}','${escAttr(product.size)}')">➕ Add to count</button>
+      <button class="btn danger" onclick="deleteAndReenter('${escAttr(barcode)}',${JSON.stringify(product).replace(/'/g,'&#39;').replace(/"/g,'&quot;')})">🗑 Delete &amp; re-enter</button>
+      <button class="btn" onclick="closeModal();restartCamera()">↩ Keep &amp; scan next</button>
+    </div>
+  </div></div>`);
+}
+
+function editExisting(barcode,product){if(!activeStockTake)return;const area=config.activeArea||'';const existing=activeStockTake.items.find(i=>i.barcode===barcode&&i.area===area);closeModal();showStockEntryModal(barcode,product,existing)}
+
+function addToExisting(barcode,name,size){
+  if(!activeStockTake)return;const area=config.activeArea||'';const existing=activeStockTake.items.find(i=>i.barcode===barcode&&i.area===area);if(!existing){closeModal();return}closeModal();
+  showModal(`<div class="modal"><div class="mhead blue">➕ Add to Count</div><div class="mbody">
+    <div class="mproduct">${esc(name)}</div>
+    <div class="msub">Current: ${formatTotal(existing.whole,existing.tenths)} — enter amount to add</div>
+    <div class="qty-grid"><div class="qty-field"><label class="qty-label">Add Whole</label><input class="qty-input" type="number" id="addWhole" min="0" max="9999" value="0" /></div><div class="qty-field"><label class="qty-label">Add Tenths</label><input class="qty-input" type="number" id="addTenths" min="0" max="9" value="0" /><div class="qty-hint">1 – 9</div></div></div>
+    <div class="total-row"><span class="total-lbl">New Total</span><span class="total-val" id="addTotalVal">${formatTotal(existing.whole,existing.tenths)}</span></div>
+    <div class="mbtns"><button class="btn" style="flex:1" onclick="closeModal();restartCamera()">Cancel</button><button class="btn primary" style="flex:2" onclick="confirmAdd('${escAttr(barcode)}','${escAttr(name)}','${escAttr(size)}',${existing.whole},${existing.tenths})">Confirm</button></div>
+  </div></div>`);
+  ['addWhole','addTenths'].forEach(id=>{document.getElementById(id).addEventListener('input',()=>{const aw=(parseInt(document.getElementById('addWhole').value)||0)+existing.whole;let at=(parseInt(document.getElementById('addTenths').value)||0)+existing.tenths;const carry=Math.floor(at/10);at=at%10;document.getElementById('addTotalVal').textContent=formatTotal(aw+carry,at)})});
+}
+
+async function confirmAdd(barcode,name,size,ew,et){
+  if(!activeStockTake)return;const addW=parseInt(document.getElementById('addWhole').value)||0;const addT=parseInt(document.getElementById('addTenths').value)||0;
+  let nw=ew+addW,nt=et+addT;const carry=Math.floor(nt/10);nt=nt%10;nw+=carry;
+  const area=config.activeArea||'';const idx=activeStockTake.items.findIndex(i=>i.barcode===barcode&&i.area===area);
+  if(idx>=0)activeStockTake.items[idx]={barcode,name,size,area,whole:nw,tenths:nt};
+  await saveActiveStockTake();closeModal();renderStockList();updateContextPill();
+  setStatus(`Updated: ${name} — ${formatTotal(nw,nt)}`,'blue');restartCamera();
+}
+
+async function deleteAndReenter(barcode,product){
+  if(!activeStockTake)return;const area=config.activeArea||'';
+  activeStockTake.items=activeStockTake.items.filter(i=>!(i.barcode===barcode&&i.area===area));
+  await saveActiveStockTake();renderStockList();updateContextPill();closeModal();showStockEntryModal(barcode,product);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UNKNOWN PRODUCT
+// ═══════════════════════════════════════════════════════════════
+function showUnknownModal(barcode){
+  showModal(`<div class="modal"><div class="mhead red">Product Not Found</div><div class="mbody">
+    <div class="mproduct" style="color:var(--muted);font-size:1rem">${barcode}</div>
+    <div class="msub">Not in any database. Enter the product name.</div>
+    <div style="margin-bottom:14px"><div class="qty-label" style="margin-bottom:6px">Product Name</div><input id="unknownName" class="setup-input" placeholder="e.g. Smirnoff Vodka 70cl" /></div>
+    <div class="mbtns"><button class="btn" style="flex:1" onclick="closeModal();restartCamera()">Skip</button><button class="btn primary" style="flex:2" onclick="continueUnknown('${escAttr(barcode)}')">Continue</button></div>
+  </div></div>`);
+  setTimeout(()=>{const n=document.getElementById('unknownName');if(n)n.focus()},100);
+}
+function continueUnknown(barcode){const name=document.getElementById('unknownName').value.trim();if(!name){document.getElementById('unknownName').style.borderColor='var(--red)';return}closeModal();showStockEntryModal(barcode,{name,size:'—',source:'Manual'})}
+
+// ═══════════════════════════════════════════════════════════════
+// PREMIUM UPSELL
+// ═══════════════════════════════════════════════════════════════
+function showPremiumModal(feature){
+  showModal(`<div class="modal"><div class="mhead gold">🔒 Premium Feature</div><div class="mbody">
+    <div class="mproduct">Unlock Premium</div><div class="msub">Available on the Premium plan.</div>
+    <div class="premium-features">
+      <div class="pf-row"><div class="pf-icon">📊</div><div class="pf-text">Combined export<span>Merge all areas into one report</span></div></div>
+      <div class="pf-row"><div class="pf-icon">📍</div><div class="pf-text">More areas per venue<span>Dev: 2 areas (V1) / 1 area (V2)</span></div></div>
+      <div class="pf-row"><div class="pf-icon">🏢</div><div class="pf-text">Up to 5 venues<span>Dev limited to 2</span></div></div>
+      <div class="pf-row"><div class="pf-icon">📅</div><div class="pf-text">Stock history drill-down<span>Review past stock takes item by item</span></div></div>
+    </div>
+    <div class="mbtns"><button class="btn" style="flex:1" onclick="closeModal()">Not Now</button><button class="btn primary" style="flex:2" onclick="closeModal()">Coming Soon</button></div>
+  </div></div>`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STOCK LIST
+// ═══════════════════════════════════════════════════════════════
+function renderStockList(){
+  if(!activeStockTake||currentMode!=='stock'){stockSect.style.display='none';return}
+  const area=config.activeArea||'';const filtered=activeStockTake.items.filter(i=>i.area===area);
+  stockSect.style.display='block';
+  stockCount.textContent=filtered.length+(filtered.length===1?' item':' items');
+  stockAreaTag.textContent=area;stockAreaTag.style.display=area?'inline-block':'none';
+  stockList.innerHTML=filtered.map((item)=>{const gi=activeStockTake.items.indexOf(item);return`<div class="stock-item"><div class="stock-item-info"><div class="stock-item-name">${esc(item.name)}</div><div class="stock-item-meta">${item.barcode}${item.size&&item.size!=='—'?' · '+esc(item.size):''}</div></div><div class="stock-item-qty">${formatTotal(item.whole,item.tenths)}</div><button class="stock-item-del" onclick="deleteItem(${gi})">×</button></div>`}).join('');
+}
+
+async function deleteItem(idx){if(!activeStockTake)return;activeStockTake.items.splice(idx,1);await saveActiveStockTake();renderStockList();updateContextPill()}
+
+async function clearStock(){
+  if(!activeStockTake)return;const area=config.activeArea||'';
+  if(!confirm(`Clear all entries for ${area||'this stock take'}? Cannot be undone.`))return;
+  activeStockTake.items=activeStockTake.items.filter(i=>i.area!==area);
+  await saveActiveStockTake();renderStockList();updateContextPill();setStatus('Cleared','blue');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPLETE STOCK TAKE
+// ═══════════════════════════════════════════════════════════════
+async function completeStockTake(){
+  if(!activeStockTake||activeStockTake.items.length===0){setStatus('No items','err');return}
+  if(!confirm(`Complete this stock take?\n\n${activeStockTake.items.length} items. It will be locked and archived.`))return;
+  activeStockTake.status='complete';activeStockTake.completedAt=new Date().toISOString();
+  await saveActiveStockTake();
+  exportJSON(activeStockTake);
+  setStatus('Completed & exported ✓','on');activeStockTake=null;renderStockList();updateContextPill();
+  showModal(`<div class="modal"><div class="mhead green">✓ Stock Take Complete</div><div class="mbody">
+    <div class="mproduct">Archived & Exported</div>
+    <div class="msub">JSON file downloaded. View past stock takes in History tab.</div>
+    <div class="mbtns"><button class="btn primary" style="flex:1" onclick="closeModal()">Done</button></div>
+  </div></div>`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// JSON EXPORT
+// ═══════════════════════════════════════════════════════════════
+function exportJSON(st){
+  st=st||activeStockTake;if(!st||st.items.length===0){setStatus('No items','err');return}
+  const payload={_v:2,exported:new Date().toISOString(),group:config.groupName||null,venue:st.venueName,status:st.status,createdAt:st.createdAt,completedAt:st.completedAt,items:st.items.map(i=>({b:i.barcode,n:i.name,s:i.size,a:i.area,w:i.whole,t:i.tenths||0,tot:parseFloat(formatTotal(i.whole,i.tenths))}))};
+  const json=JSON.stringify(payload);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');const date=new Date().toISOString().slice(0,10);const vn=(st.venueName||'').replace(/\s+/g,'_');
+  a.href=url;a.download=`stocktake_${vn}_${date}.json`;a.click();URL.revokeObjectURL(url);
+  setStatus(`Exported ${st.items.length} items`,'blue');
+}
+function exportCurrentJSON(){if(!activeStockTake){setStatus('No active stock take','err');return}exportJSON(activeStockTake)}
+
+// ═══════════════════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════════════════
+async function showHistory(){
+  historySect.style.display='block';stockSect.style.display='none';contextPill.style.display='none';setStatus('Stock take history','blue');
+  let archives=[];try{archives=await dbGetAll('stocktakes','status','complete')}catch{}
+  archives.sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
+  if(archives.length===0){historySect.innerHTML=`<div style="text-align:center;padding:30px 0"><div style="font-size:.7rem;color:var(--muted);letter-spacing:.1em">No completed stock takes yet</div></div>`;return}
+  historySect.innerHTML=`<div style="font-size:.56rem;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Completed Stock Takes</div>`+archives.map(st=>{
+    const d=new Date(st.completedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const t=new Date(st.completedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const areas=[...new Set(st.items.map(i=>i.area).filter(Boolean))];
+    return`<div class="archive-item"><div class="archive-date">${d} · ${t}</div><div class="archive-meta">${esc(st.venueName)} · ${st.items.length} items · ${areas.length>0?areas.map(a=>esc(a)).join(', '):'No areas'}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="btn blue" style="flex:unset;font-size:.52rem;padding:6px 10px" onclick="reExportArchive('${st.id}')">⬇ Export</button><button class="btn locked" style="flex:unset;font-size:.52rem;padding:6px 10px" onclick="showPremiumModal('history')">🔍 Items 🔒</button></div></div>`}).join('');
+}
+async function reExportArchive(id){try{const st=await dbGet('stocktakes',id);if(st)exportJSON(st)}catch{setStatus('Export failed','err')}}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+async function init(){try{await openDB();await loadConfig();const pc=typeof PRODUCTS!=='undefined'?Object.keys(PRODUCTS).length:0;setStatus(`Ready — ${pc.toLocaleString()} products loaded`);dot.className='dot'}catch(e){console.error('Init:',e);setStatus('Database error — try refreshing','err')}}
+init();
+btnStart.addEventListener('click',startCamera);btnStop.addEventListener('click',stopCamera);
+btnGo.addEventListener('click',()=>handleBarcode(manualInput.value));manualInput.addEventListener('keydown',e=>{if(e.key==='Enter')handleBarcode(manualInput.value)});
+</script></body></html>
