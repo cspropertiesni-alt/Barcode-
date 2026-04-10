@@ -1,19 +1,57 @@
 {
-  "name": "AlchoScan",
+  "name": "AlchoScan — UK Alcohol Barcode Lookup",
   "short_name": "AlchoScan",
-  "description": "UK Alcohol Barcode Lookup",
+  "description": "Barcode scanner and stock take tool for UK bars, pubs, and alcohol wholesalers. Instantly identify any UK alcohol product and manage stock takes by area with CSV export.",
   "start_url": "/Barcode-/",
   "scope": "/Barcode-/",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0d0d0d",
   "theme_color": "#d4a017",
+  "lang": "en-GB",
+  "categories": ["business", "utilities", "productivity"],
   "icons": [
+    { "src": "icon-72.png",  "sizes": "72x72",   "type": "image/png", "purpose": "any" },
+    { "src": "icon-96.png",  "sizes": "96x96",   "type": "image/png", "purpose": "any" },
+    { "src": "icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "icon-152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg",     "sizes": "any",     "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "screenshots": [
     {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "AlchoScan on desktop"
+    },
+    {
+      "src": "screenshot-narrow.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "AlchoScan on mobile"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Scan & Lookup",
+      "short_name": "Scan",
+      "description": "Scan a barcode to identify a product",
+      "url": "/Barcode-/?mode=lookup",
+      "icons": [{ "src": "icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Stock Take",
+      "short_name": "Stock",
+      "description": "Start a stock take session",
+      "url": "/Barcode-/?mode=stock",
+      "icons": [{ "src": "icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ]
 }
