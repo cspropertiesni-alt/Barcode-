@@ -5,298 +5,874 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#d4a017" />
   <title>AlchoScan</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icon.svg" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="products.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0d0d0d; --surface: #161616; --border: #2a2a2a;
-      --accent: #d4a017; --accent2: #5a2d0c; --text: #e8e4dc;
-      --muted: #6b6560; --green: #4caf72; --red: #cf4444;
+      --bg:#0d0d0d; --surface:#161616; --border:#2a2a2a;
+      --accent:#d4a017; --accent2:#5a2d0c; --text:#e8e4dc;
+      --muted:#6b6560; --green:#4caf72; --red:#cf4444; --blue:#4a9eda;
     }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: 'DM Mono', monospace;
-      min-height: 100vh; display: flex; flex-direction: column;
-      align-items: center; padding: 20px 16px 48px;
-    }
-    header { text-align: center; margin-bottom: 20px; }
-    h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.8rem, 10vw, 4.5rem); letter-spacing: 0.08em; color: var(--accent); line-height: 1; }
-    .sub { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.25em; text-transform: uppercase; margin-top: 4px; }
-    .divider { width: 100%; max-width: 480px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); margin-bottom: 20px; opacity: 0.4; }
-    .card { width: 100%; max-width: 480px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-    #vc { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    video { width: 100%; height: 100%; object-fit: cover; display: none; }
-    .corner { position: absolute; width: 26px; height: 26px; border-color: var(--accent); border-style: solid; z-index: 10; }
-    .tl { top: 14px; left: 14px; border-width: 2px 0 0 2px; }
-    .tr { top: 14px; right: 14px; border-width: 2px 2px 0 0; }
-    .bl { bottom: 14px; left: 14px; border-width: 0 0 2px 2px; }
-    .br { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; }
-    #scanline { display: none; position: absolute; left: 14px; right: 14px; height: 2px; background: rgba(212,160,23,0.8); box-shadow: 0 0 10px 3px rgba(212,160,23,0.4); z-index: 9; animation: scan 2s ease-in-out infinite; }
-    @keyframes scan { 0%,100% { top: 18%; } 50% { top: 78%; } }
-    #placeholder { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.08em; text-align: center; padding: 32px 20px; }
-    #placeholder svg { opacity: 0.25; }
-    .controls { padding: 12px 14px; display: flex; gap: 8px; border-top: 1px solid var(--border); }
-    .btn { flex: 1; padding: 11px 6px; border: 1px solid var(--border); background: transparent; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
-    .btn.primary { background: var(--accent); color: #0d0d0d; border-color: var(--accent); font-weight: 500; }
-    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .manual { padding: 0 14px 14px; display: flex; gap: 8px; }
-    .manual input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.78rem; padding: 9px 11px; border-radius: 2px; outline: none; letter-spacing: 0.1em; }
-    .manual input:focus { border-color: var(--accent); }
-    .manual input::placeholder { color: var(--muted); }
-    .manual button { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.1em; padding: 9px 12px; border-radius: 2px; cursor: pointer; text-transform: uppercase; }
-    #statusbar { padding: 8px 14px; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; min-height: 34px; }
-    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
-    .dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); }
-    .dot.err { background: var(--red);   box-shadow: 0 0 6px var(--red); }
-    .spinner { width: 14px; height: 14px; border: 2px solid rgba(212,160,23,0.25); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; display: none; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #result { width: 100%; max-width: 480px; margin-top: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; display: none; animation: up 0.3s ease; }
-    @keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .rhead { padding: 10px 14px; background: var(--accent); color: #0d0d0d; font-family: 'Bebas Neue', sans-serif; font-size: 0.85rem; letter-spacing: 0.2em; display: flex; align-items: center; gap: 6px; }
-    .rhead.err { background: var(--red); color: #fff; }
-    .rbody { padding: 16px 14px; }
-    .pname { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.3rem, 5vw, 1.9rem); letter-spacing: 0.04em; line-height: 1.15; margin-bottom: 14px; }
-    .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .mi { display: flex; flex-direction: column; gap: 2px; }
-    .ml { font-size: 0.55rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
-    .mv { font-size: 0.75rem; color: var(--text); }
-    .tag { display: inline-block; background: var(--accent2); color: var(--accent); font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; }
-    .bc { font-size: 1rem; color: var(--accent); letter-spacing: 0.12em; }
-    .thumb { float: right; max-width: 72px; max-height: 72px; object-fit: contain; margin: 0 0 10px 12px; border: 1px solid var(--border); border-radius: 2px; }
-    #hist { width: 100%; max-width: 480px; margin-top: 20px; display: none; }
-    .htitle { font-size: 0.58rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-    .htitle::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-    .hi { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; padding: 9px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; margin-bottom: 6px; }
-    .hn { font-size: 0.72rem; color: var(--text); }
-    .hb { font-size: 0.58rem; color: var(--muted); }
-    .ht { font-size: 0.58rem; color: var(--muted); flex-shrink: 0; }
-    #installBanner { width: 100%; max-width: 480px; margin-bottom: 16px; background: var(--accent2); border: 1px solid var(--accent); border-radius: 4px; padding: 12px 14px; display: none; align-items: center; justify-content: space-between; gap: 12px; }
-    #installBanner span { font-size: 0.68rem; color: var(--accent); letter-spacing: 0.08em; }
-    #installBtn { background: var(--accent); color: #0d0d0d; border: none; font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 14px; border-radius: 2px; cursor: pointer; font-weight: 500; }
+    body { background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:16px 16px 60px; }
+
+    header { text-align:center; margin-bottom:14px; }
+    h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.4rem,9vw,4rem); letter-spacing:0.08em; color:var(--accent); line-height:1; }
+    .sub { font-size:0.58rem; color:var(--muted); letter-spacing:0.25em; text-transform:uppercase; margin-top:3px; }
+    .divider { width:100%; max-width:480px; height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); margin-bottom:14px; opacity:0.4; }
+
+    /* Mode toggle */
+    .mode-toggle { width:100%; max-width:480px; display:flex; margin-bottom:14px; border:1px solid var(--border); border-radius:3px; overflow:hidden; }
+    .mode-btn { flex:1; padding:10px 6px; background:transparent; border:none; color:var(--muted); font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.15em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
+    .mode-btn.active { background:var(--accent); color:#0d0d0d; font-weight:500; }
+    .mode-btn:not(.active):hover { color:var(--accent); }
+
+    /* Area pill */
+    #areaPill { width:100%; max-width:480px; display:none; align-items:center; justify-content:space-between; background:var(--surface); border:1px solid var(--blue); border-radius:3px; padding:8px 14px; margin-bottom:10px; }
+    .area-pill-left { display:flex; flex-direction:column; gap:2px; }
+    .area-pill-label { font-size:0.52rem; color:var(--muted); letter-spacing:0.2em; text-transform:uppercase; }
+    .area-pill-name { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; color:var(--blue); letter-spacing:0.06em; }
+    .area-pill-change { font-size:0.58rem; color:var(--blue); letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; border:1px solid var(--blue); padding:4px 10px; border-radius:2px; background:transparent; font-family:'DM Mono',monospace; }
+    .area-pill-change:hover { background:rgba(74,158,218,0.1); }
+
+    /* Scanner card */
+    .card { width:100%; max-width:480px; background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+    #vc { position:relative; width:100%; aspect-ratio:4/3; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    video { width:100%; height:100%; object-fit:cover; display:none; }
+    .corner { position:absolute; width:26px; height:26px; border-color:var(--accent); border-style:solid; z-index:10; }
+    .tl { top:14px; left:14px; border-width:2px 0 0 2px; }
+    .tr { top:14px; right:14px; border-width:2px 2px 0 0; }
+    .bl { bottom:14px; left:14px; border-width:0 0 2px 2px; }
+    .br { bottom:14px; right:14px; border-width:0 2px 2px 0; }
+    #scanline { display:none; position:absolute; left:14px; right:14px; height:2px; background:rgba(212,160,23,0.8); box-shadow:0 0 10px 3px rgba(212,160,23,0.4); z-index:9; animation:scan 2s ease-in-out infinite; }
+    @keyframes scan { 0%,100%{top:18%} 50%{top:78%} }
+    #placeholder { display:flex; flex-direction:column; align-items:center; gap:10px; color:var(--muted); font-size:0.68rem; letter-spacing:0.08em; text-align:center; padding:28px 20px; }
+    #placeholder svg { opacity:0.22; }
+    .mode-badge { position:absolute; top:10px; left:50%; transform:translateX(-50%); background:var(--blue); color:#fff; font-size:0.55rem; letter-spacing:0.2em; text-transform:uppercase; padding:3px 10px; border-radius:2px; z-index:11; display:none; white-space:nowrap; }
+
+    .controls { padding:10px 14px; display:flex; gap:8px; border-top:1px solid var(--border); }
+    .btn { flex:1; padding:10px 6px; border:1px solid var(--border); background:transparent; color:var(--text); font-family:'DM Mono',monospace; font-size:0.63rem; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:all 0.15s; }
+    .btn.primary { background:var(--accent); color:#0d0d0d; border-color:var(--accent); font-weight:500; }
+    .btn.danger  { border-color:var(--red); color:var(--red); }
+    .btn.blue    { border-color:var(--blue); color:var(--blue); }
+    .btn.locked  { border-color:#2a2a2a; color:var(--muted); cursor:not-allowed; opacity:0.5; }
+    .btn:disabled { opacity:0.3; cursor:not-allowed; }
+
+    .manual { padding:0 14px 12px; display:flex; gap:8px; }
+    .manual input { flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:0.78rem; padding:8px 10px; border-radius:2px; outline:none; letter-spacing:0.1em; }
+    .manual input:focus { border-color:var(--accent); }
+    .manual input::placeholder { color:var(--muted); }
+    .manual button { background:transparent; border:1px solid var(--border); color:var(--muted); font-family:'DM Mono',monospace; font-size:0.62rem; padding:8px 12px; border-radius:2px; cursor:pointer; text-transform:uppercase; letter-spacing:0.1em; }
+    .manual button:hover { border-color:var(--accent); color:var(--accent); }
+
+    #statusbar { padding:7px 14px; font-size:0.58rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); border-top:1px solid var(--border); display:flex; align-items:center; gap:8px; min-height:32px; }
+    .dot { width:6px; height:6px; border-radius:50%; background:var(--muted); flex-shrink:0; }
+    .dot.on   { background:var(--green); box-shadow:0 0 6px var(--green); }
+    .dot.err  { background:var(--red);   box-shadow:0 0 6px var(--red); }
+    .dot.blue { background:var(--blue);  box-shadow:0 0 6px var(--blue); }
+    .spinner { width:13px; height:13px; border:2px solid rgba(212,160,23,0.2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.6s linear infinite; flex-shrink:0; display:none; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* Lookup result */
+    #result { width:100%; max-width:480px; margin-top:14px; background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; display:none; animation:up 0.25s ease; }
+    @keyframes up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .rhead { padding:9px 14px; background:var(--accent); color:#0d0d0d; font-family:'Bebas Neue',sans-serif; font-size:0.82rem; letter-spacing:0.2em; }
+    .rhead.err { background:var(--red); color:#fff; }
+    .rbody { padding:14px; }
+    .pname { font-family:'Bebas Neue',sans-serif; font-size:clamp(1.2rem,5vw,1.8rem); letter-spacing:0.04em; line-height:1.15; margin-bottom:12px; }
+    .meta { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .mi { display:flex; flex-direction:column; gap:2px; }
+    .ml { font-size:0.52rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); }
+    .mv { font-size:0.73rem; color:var(--text); }
+    .bc { color:var(--accent); letter-spacing:0.1em; }
+    .src-badge { font-size:0.52rem; color:var(--muted); margin-top:10px; letter-spacing:0.1em; }
+
+    /* Modal overlay */
+    #modalOverlay { position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:100; display:none; align-items:center; justify-content:center; padding:20px; }
+    .modal { background:var(--surface); border:1px solid var(--border); border-radius:4px; width:100%; max-width:400px; overflow:hidden; animation:up 0.2s ease; }
+    .mhead { padding:12px 16px; font-family:'Bebas Neue',sans-serif; font-size:0.9rem; letter-spacing:0.2em; }
+    .mhead.blue  { background:var(--blue);   color:#fff; }
+    .mhead.gold  { background:var(--accent); color:#0d0d0d; }
+    .mhead.red   { background:var(--red);    color:#fff; }
+    .mbody { padding:16px; }
+    .mproduct { font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:0.04em; margin-bottom:4px; line-height:1.2; }
+    .msub { font-size:0.62rem; color:var(--muted); letter-spacing:0.1em; margin-bottom:16px; line-height:1.5; }
+    .mbtns { display:flex; gap:8px; }
+    .mbtns.col { flex-direction:column; gap:8px; }
+
+    /* Stock quantity inputs */
+    .qty-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+    .qty-field { display:flex; flex-direction:column; gap:5px; }
+    .qty-label { font-size:0.56rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); }
+    .qty-input { background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'Bebas Neue',sans-serif; font-size:2.4rem; padding:10px 12px; border-radius:2px; outline:none; text-align:center; width:100%; -moz-appearance:textfield; }
+    .qty-input::-webkit-inner-spin-button,.qty-input::-webkit-outer-spin-button { -webkit-appearance:none; }
+    .qty-input:focus { border-color:var(--blue); }
+    .qty-hint { font-size:0.52rem; color:var(--muted); text-align:center; letter-spacing:0.08em; }
+    .total-row { background:var(--bg); border:1px solid var(--border); border-radius:2px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    .total-lbl { font-size:0.56rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); }
+    .total-val { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; color:var(--accent); }
+
+    /* Area setup */
+    .area-list { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+    .area-row { display:flex; align-items:center; gap:8px; }
+    .area-num { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; color:var(--muted); width:18px; flex-shrink:0; text-align:center; }
+    .area-input { flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:0.82rem; padding:9px 11px; border-radius:2px; outline:none; letter-spacing:0.08em; }
+    .area-input:focus { border-color:var(--blue); }
+    .area-input::placeholder { color:var(--muted); }
+    .area-locked-row { display:flex; align-items:center; gap:8px; padding:9px 11px; border:1px solid #1e1e1e; border-radius:2px; opacity:0.45; }
+    .area-locked-text { font-size:0.7rem; color:var(--muted); flex:1; }
+    .premium-tag { font-size:0.5rem; letter-spacing:0.15em; text-transform:uppercase; background:var(--accent2); color:var(--accent); padding:2px 6px; border-radius:2px; white-space:nowrap; flex-shrink:0; }
+    .area-skip { font-size:0.62rem; color:var(--muted); text-align:center; margin-top:8px; cursor:pointer; text-decoration:underline; letter-spacing:0.08em; }
+    .area-skip:hover { color:var(--text); }
+
+    /* Area select (when areas already set) */
+    .area-select-list { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+    .area-opt { background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:0.8rem; padding:12px 14px; border-radius:2px; cursor:pointer; text-align:left; width:100%; display:flex; align-items:center; justify-content:space-between; transition:all 0.15s; letter-spacing:0.06em; }
+    .area-opt:hover { border-color:var(--blue); color:var(--blue); }
+    .area-opt.selected { border-color:var(--blue); background:rgba(74,158,218,0.08); color:var(--blue); }
+
+    /* Premium upsell modal */
+    .premium-features { display:flex; flex-direction:column; gap:8px; margin:14px 0; }
+    .pf-row { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border:1px solid var(--border); border-radius:2px; }
+    .pf-icon { font-size:1.1rem; flex-shrink:0; }
+    .pf-text { font-size:0.7rem; color:var(--text); line-height:1.4; }
+    .pf-text span { color:var(--muted); font-size:0.62rem; display:block; margin-top:2px; }
+
+    /* Stock section */
+    #stock-section { width:100%; max-width:480px; margin-top:16px; display:none; }
+    .stock-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+    .stock-title-wrap { display:flex; align-items:center; gap:8px; }
+    .stock-title { font-size:0.56rem; letter-spacing:0.25em; text-transform:uppercase; color:var(--muted); }
+    .stock-area-tag { font-size:0.52rem; letter-spacing:0.12em; text-transform:uppercase; background:rgba(74,158,218,0.12); color:var(--blue); border:1px solid rgba(74,158,218,0.25); padding:2px 7px; border-radius:2px; }
+    .stock-count { font-size:0.58rem; color:var(--accent); letter-spacing:0.1em; }
+    .stock-actions { display:flex; gap:8px; margin-bottom:10px; }
+    .stock-list { display:flex; flex-direction:column; gap:5px; max-height:340px; overflow-y:auto; }
+    .stock-item { background:var(--surface); border:1px solid var(--border); border-radius:2px; padding:8px 12px; display:flex; align-items:center; gap:10px; }
+    .stock-item-info { flex:1; min-width:0; }
+    .stock-item-name { font-size:0.7rem; color:var(--text); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .stock-item-meta { font-size:0.54rem; color:var(--muted); margin-top:2px; }
+    .stock-item-qty { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; color:var(--accent); flex-shrink:0; min-width:44px; text-align:right; }
+    .stock-item-del { background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:1.1rem; padding:2px 4px; flex-shrink:0; line-height:1; }
+    .stock-item-del:hover { color:var(--red); }
+
+    /* Locked export row */
+    .locked-export { display:flex; align-items:center; gap:10px; padding:10px 14px; border:1px solid #1e1e1e; border-radius:2px; opacity:0.5; margin-top:4px; cursor:pointer; }
+    .locked-export:hover { opacity:0.7; }
+    .locked-export-text { font-size:0.62rem; color:var(--muted); flex:1; letter-spacing:0.08em; }
+
+    /* Install banner */
+    #installBanner { width:100%; max-width:480px; margin-bottom:12px; background:var(--accent2); border:1px solid var(--accent); border-radius:4px; padding:10px 14px; display:none; align-items:center; justify-content:space-between; gap:12px; }
+    #installBanner span { font-size:0.65rem; color:var(--accent); letter-spacing:0.08em; }
+    #installBtn { background:var(--accent); color:#0d0d0d; border:none; font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase; padding:7px 12px; border-radius:2px; cursor:pointer; font-weight:500; }
   </style>
 </head>
 <body>
-  <div id="installBanner">
-    <span>📲 Install AlchoScan as an app</span>
-    <button id="installBtn">Install</button>
+
+<div id="installBanner">
+  <span>📲 Install AlchoScan as an app</span>
+  <button id="installBtn">Install</button>
+</div>
+
+<header>
+  <h1>AlchoScan</h1>
+  <p class="sub">UK Alcohol Barcode Lookup</p>
+</header>
+<div class="divider"></div>
+
+<div class="mode-toggle">
+  <button class="mode-btn active" id="modeLookup" onclick="setMode('lookup')">🔍 Scan &amp; Lookup</button>
+  <button class="mode-btn" id="modeStock"  onclick="setMode('stock')">📦 Stock Take</button>
+</div>
+
+<!-- Active area pill -->
+<div id="areaPill">
+  <div class="area-pill-left">
+    <div class="area-pill-label">Current Area</div>
+    <div class="area-pill-name" id="areaPillName">—</div>
   </div>
+  <button class="area-pill-change" onclick="showAreaSelectModal()">Change</button>
+</div>
 
-  <header>
-    <h1>AlchoScan</h1>
-    <p class="sub">UK Alcohol Barcode Lookup</p>
-  </header>
-  <div class="divider"></div>
-
-  <div class="card">
-    <div id="vc">
-      <div class="corner tl"></div><div class="corner tr"></div>
-      <div class="corner bl"></div><div class="corner br"></div>
-      <div id="scanline"></div>
-      <video id="video" playsinline autoplay muted></video>
-      <div id="placeholder">
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>
-        Tap Start Camera to scan a barcode
-      </div>
-    </div>
-    <div class="controls">
-      <button class="btn primary" id="btnStart">Start Camera</button>
-      <button class="btn" id="btnStop" disabled>Stop</button>
-    </div>
-    <div class="manual">
-      <input type="text" id="manualInput" inputmode="numeric" placeholder="Or enter barcode manually…" maxlength="14" />
-      <button id="btnGo">Go</button>
-    </div>
-    <div id="statusbar">
-      <div class="dot" id="dot"></div>
-      <div class="spinner" id="spinner"></div>
-      <span id="statusMsg">Ready</span>
+<!-- Scanner -->
+<div class="card">
+  <div id="vc">
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+    <div id="scanline"></div>
+    <div class="mode-badge" id="modeBadge">Stock Take</div>
+    <video id="video" playsinline autoplay muted></video>
+    <div id="placeholder">
+      <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      Tap Start Camera to scan
     </div>
   </div>
+  <div class="controls">
+    <button class="btn primary" id="btnStart">Start Camera</button>
+    <button class="btn" id="btnStop" disabled>Stop</button>
+  </div>
+  <div class="manual">
+    <input type="text" id="manualInput" inputmode="numeric" placeholder="Enter barcode manually…" maxlength="14" />
+    <button id="btnGo">Go</button>
+  </div>
+  <div id="statusbar">
+    <div class="dot" id="dot"></div>
+    <div class="spinner" id="spinner"></div>
+    <span id="statusMsg">Ready — 2,715 products loaded</span>
+  </div>
+</div>
 
-  <div id="result"></div>
-  <div id="hist"><div class="htitle">Scan History</div><div id="histList"></div></div>
+<!-- Lookup result -->
+<div id="result"></div>
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(console.error);
+<!-- Stock section -->
+<div id="stock-section">
+  <div class="stock-header">
+    <div class="stock-title-wrap">
+      <div class="stock-title">Stock Take</div>
+      <div class="stock-area-tag" id="stockAreaTag"></div>
+    </div>
+    <div class="stock-count" id="stockCount">0 items</div>
+  </div>
+  <div class="stock-actions">
+    <button class="btn blue"   style="font-size:0.6rem" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn locked" style="font-size:0.6rem" onclick="showPremiumModal('combined')">📊 Combined Export 🔒</button>
+    <button class="btn danger" style="font-size:0.6rem" onclick="clearStock()">✕ Clear</button>
+  </div>
+  <div class="stock-list" id="stockList"></div>
+</div>
+
+<!-- Modal -->
+<div id="modalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div id="modalContent"></div>
+</div>
+
+<script>
+// ── PWA ──────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'flex';
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt(); await deferredPrompt.userChoice;
+  deferredPrompt = null; document.getElementById('installBanner').style.display = 'none';
+});
+
+// ── State ────────────────────────────────────────────────────
+let currentMode  = 'lookup';
+let stream = null, detector = null, rafId = null, scanning = false;
+let areas        = [];          // up to 3 area names
+let currentArea  = null;        // active area name
+let stockItems   = [];          // { barcode, name, size, area, whole, tenths }
+let pendingBarcode = null;
+
+// ── DOM ──────────────────────────────────────────────────────
+const video       = document.getElementById('video');
+const placeholder = document.getElementById('placeholder');
+const btnStart    = document.getElementById('btnStart');
+const btnStop     = document.getElementById('btnStop');
+const dot         = document.getElementById('dot');
+const spinner     = document.getElementById('spinner');
+const statusMsg   = document.getElementById('statusMsg');
+const resultEl    = document.getElementById('result');
+const scanline    = document.getElementById('scanline');
+const manualInput = document.getElementById('manualInput');
+const btnGo       = document.getElementById('btnGo');
+const stockSect   = document.getElementById('stock-section');
+const stockList   = document.getElementById('stockList');
+const stockCount  = document.getElementById('stockCount');
+const stockAreaTag= document.getElementById('stockAreaTag');
+const modeBadge   = document.getElementById('modeBadge');
+const areaPill    = document.getElementById('areaPill');
+const areaPillName= document.getElementById('areaPillName');
+const overlay     = document.getElementById('modalOverlay');
+const modalContent= document.getElementById('modalContent');
+
+// ── Helpers ──────────────────────────────────────────────────
+function setStatus(msg, state='idle') {
+  statusMsg.textContent = msg;
+  dot.className = 'dot' + (state==='on' ? ' on' : state==='err' ? ' err' : state==='blue' ? ' blue' : '');
+}
+function setLoading(on) { spinner.style.display = on ? 'block' : 'none'; }
+function esc(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function showModal(html) { modalContent.innerHTML = html; overlay.style.display = 'flex'; }
+function closeModal()   { overlay.style.display = 'none'; modalContent.innerHTML = ''; }
+
+// ── Mode ─────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeLookup').classList.toggle('active', mode==='lookup');
+  document.getElementById('modeStock').classList.toggle('active',  mode==='stock');
+  modeBadge.style.display = mode==='stock' ? 'block' : 'none';
+  resultEl.style.display  = 'none';
+  if (mode === 'stock') {
+    // Show area setup if no areas configured yet
+    if (areas.length === 0) {
+      showAreaSetupModal();
+    } else if (!currentArea) {
+      showAreaSelectModal();
     }
+    updateAreaPill();
+    renderStockList();
+  } else {
+    areaPill.style.display = 'none';
+    stockSect.style.display = 'none';
+    setStatus('Ready — 2,715 products loaded');
+    dot.className = 'dot';
+  }
+}
 
-    let deferredPrompt = null;
-    const installBanner = document.getElementById('installBanner');
-    const installBtn    = document.getElementById('installBtn');
+// ── Area pill ────────────────────────────────────────────────
+function updateAreaPill() {
+  if (currentMode !== 'stock') return;
+  if (currentArea) {
+    areaPill.style.display = 'flex';
+    areaPillName.textContent = currentArea;
+    stockAreaTag.textContent = currentArea;
+    setStatus('Stock Take — ' + currentArea, 'blue');
+  } else {
+    areaPill.style.display = 'none';
+    setStatus('Stock Take — select an area', 'blue');
+  }
+}
 
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBanner.style.display = 'flex';
-    });
-    installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      installBanner.style.display = 'none';
-    });
-    window.addEventListener('appinstalled', () => { installBanner.style.display = 'none'; });
-
-    const video       = document.getElementById('video');
-    const placeholder = document.getElementById('placeholder');
-    const btnStart    = document.getElementById('btnStart');
-    const btnStop     = document.getElementById('btnStop');
-    const dot         = document.getElementById('dot');
-    const spinner     = document.getElementById('spinner');
-    const statusMsg   = document.getElementById('statusMsg');
-    const result      = document.getElementById('result');
-    const scanline    = document.getElementById('scanline');
-    const manualInput = document.getElementById('manualInput');
-    const btnGo       = document.getElementById('btnGo');
-    const hist        = document.getElementById('hist');
-    const histList    = document.getElementById('histList');
-
-    let stream = null, detector = null, rafId = null, scanning = false;
-    const history = [];
-
-    function setStatus(msg, state='idle') {
-      statusMsg.textContent = msg;
-      dot.className = 'dot' + (state==='on' ? ' on' : state==='err' ? ' err' : '');
-    }
-    function setLoading(on) { spinner.style.display = on ? 'block' : 'none'; }
-
-    async function startCamera() {
-      try {
-        setStatus('Requesting camera…');
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
-        });
-        video.srcObject = stream;
-        await video.play();
-        video.style.display = 'block';
-        placeholder.style.display = 'none';
-        scanline.style.display = 'block';
-        scanning = true;
-        btnStart.disabled = true;
-        btnStop.disabled = false;
-        if ('BarcodeDetector' in window) {
-          detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39'] });
-          setStatus('Scanning — point at barcode', 'on');
-          loop();
-        } else {
-          setStatus('Camera on — use manual entry below', 'err');
-        }
-      } catch(e) {
-        setStatus('Camera error: ' + (e.message || e), 'err');
-      }
-    }
-
-    function loop() {
-      if (!scanning || !video.srcObject) return;
-      if (video.readyState < 2) { rafId = requestAnimationFrame(loop); return; }
-      detector.detect(video).then(codes => {
-        if (codes.length > 0) { stopCamera(); lookup(codes[0].rawValue); }
-        else { rafId = requestAnimationFrame(loop); }
-      }).catch(() => { rafId = requestAnimationFrame(loop); });
-    }
-
-    function stopCamera() {
-      if (rafId) cancelAnimationFrame(rafId);
-      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-      video.srcObject = null;
-      video.style.display = 'none';
-      placeholder.style.display = 'flex';
-      scanline.style.display = 'none';
-      scanning = false;
-      btnStart.disabled = false;
-      btnStop.disabled = true;
-      setStatus('Camera stopped');
-    }
-
-    async function lookup(code) {
-      const barcode = code.trim().replace(/\D/g,'');
-      if (!barcode) { setStatus('Invalid barcode','err'); return; }
-      setLoading(true);
-      setStatus('Looking up ' + barcode + '…');
-      try {
-        const res  = await fetch('https://world.openfoodfacts.org/api/v0/product/' + barcode + '.json');
-        const data = await res.json();
-        if (data.status === 1 && data.product) {
-          showResult(barcode, data.product);
-          addHistory(barcode, data.product.product_name || data.product.product_name_en || 'Unknown');
-          setStatus('Product found ✓', 'on');
-        } else {
-          showNotFound(barcode);
-          setStatus('Not found in database', 'err');
-        }
-      } catch(e) {
-        showError();
-        setStatus('Network error', 'err');
-      }
-      setLoading(false);
-    }
-
-    function showResult(barcode, p) {
-      const name  = p.product_name || p.product_name_en || p.generic_name || 'Unknown Product';
-      const brand = p.brands || '—';
-      const qty   = p.quantity || '—';
-      const abv   = p.nutriments?.alcohol ? p.nutriments.alcohol + '% ABV' : '—';
-      const cat   = (p.categories_tags||[])
-        .find(t => /alcohol|beer|wine|spirit|cider|lager|whisky|vodka|gin|rum|brandy/i.test(t))
-        ?.replace(/^en:/,'').replace(/-/g,' ') || '—';
-      const img = p.image_front_small_url || p.image_small_url || null;
-      result.style.display = 'block';
-      result.innerHTML = `
-        <div class="rhead">✓ Product Identified</div>
-        <div class="rbody">
-          ${img ? `<img src="${img}" class="thumb" onerror="this.remove()">` : ''}
-          <div class="pname">${name}</div>
-          <div class="meta">
-            <div class="mi"><span class="ml">Barcode</span><span class="mv bc">${barcode}</span></div>
-            <div class="mi"><span class="ml">Brand</span><span class="mv">${brand}</span></div>
-            <div class="mi"><span class="ml">Size</span><span class="mv">${qty}</span></div>
-            <div class="mi"><span class="ml">ABV</span><span class="mv">${abv}</span></div>
-            <div class="mi"><span class="ml">Category</span><span class="mv"><span class="tag">${cat}</span></span></div>
+// ── Area modals ───────────────────────────────────────────────
+function showAreaSetupModal() {
+  showModal(`
+    <div class="modal">
+      <div class="mhead gold">Set Up Areas</div>
+      <div class="mbody">
+        <div class="msub" style="margin-bottom:14px">Name up to 3 areas for this stock take (e.g. Bar 1, Cellar, Back Bar). Skip to count without areas.</div>
+        <div class="area-list">
+          <div class="area-row">
+            <div class="area-num">1</div>
+            <input class="area-input" id="area1" placeholder="e.g. Bar 1" maxlength="30" />
           </div>
-        </div>`;
-    }
+          <div class="area-row">
+            <div class="area-num">2</div>
+            <input class="area-input" id="area2" placeholder="e.g. Bar 2" maxlength="30" />
+          </div>
+          <div class="area-row">
+            <div class="area-num">3</div>
+            <input class="area-input" id="area3" placeholder="e.g. Cellar" maxlength="30" />
+          </div>
+          <div class="area-locked-row">
+            <div class="area-num" style="color:#333">4</div>
+            <div class="area-locked-text">More areas</div>
+            <div class="premium-tag">Premium</div>
+          </div>
+          <div class="area-locked-row">
+            <div class="area-num" style="color:#333">5–10</div>
+            <div class="area-locked-text">Multi-venue support</div>
+            <div class="premium-tag">Premium</div>
+          </div>
+        </div>
+        <div class="mbtns">
+          <button class="btn primary" style="flex:2" onclick="saveAreas()">Save &amp; Continue</button>
+        </div>
+        <div class="area-skip" onclick="skipAreas()">Skip — count without areas</div>
+      </div>
+    </div>`);
+  setTimeout(() => { const a = document.getElementById('area1'); if (a) a.focus(); }, 100);
+}
 
-    function showNotFound(barcode) {
-      result.style.display = 'block';
-      result.innerHTML = `
-        <div class="rhead err">Not Found</div>
-        <div class="rbody">
-          <div class="pname" style="color:var(--muted)">Barcode ${barcode}</div>
-          <p style="font-size:0.72rem;color:var(--muted);line-height:1.6;margin-top:8px">Not in Open Food Facts. May be a regional or newer product.</p>
-        </div>`;
-    }
+function saveAreas() {
+  const a1 = document.getElementById('area1').value.trim();
+  const a2 = document.getElementById('area2').value.trim();
+  const a3 = document.getElementById('area3').value.trim();
+  areas = [a1, a2, a3].filter(Boolean);
+  if (areas.length === 0) { skipAreas(); return; }
+  closeModal();
+  // If more than one area, ask which to start with
+  if (areas.length > 1) {
+    showAreaSelectModal();
+  } else {
+    currentArea = areas[0];
+    updateAreaPill();
+  }
+}
 
-    function showError() {
-      result.style.display = 'block';
-      result.innerHTML = `<div class="rhead err">Error</div><div class="rbody"><div class="pname" style="color:var(--muted);font-size:1rem">Network error — check connection</div></div>`;
-    }
+function skipAreas() {
+  areas = [];
+  currentArea = null;
+  closeModal();
+  updateAreaPill();
+  setStatus('Stock Take — scanning (no area)', 'blue');
+}
 
-    function addHistory(barcode, name) {
-      const ts = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-      history.unshift({barcode,name,ts});
-      if (history.length > 10) history.pop();
-      hist.style.display = 'block';
-      histList.innerHTML = history.map(h => `
-        <div class="hi" onclick="lookup('${h.barcode}')">
-          <div><div class="hn">${h.name}</div><div class="hb">${h.barcode}</div></div>
-          <div class="ht">${h.ts}</div>
-        </div>`).join('');
-    }
+function showAreaSelectModal() {
+  const opts = areas.map(a => `
+    <button class="area-opt${currentArea===a?' selected':''}" onclick="selectArea('${esc(a)}')">
+      <span>${a}</span><span class="area-select-arrow">→</span>
+    </button>`).join('');
+  showModal(`
+    <div class="modal">
+      <div class="mhead blue">Select Area</div>
+      <div class="mbody">
+        <div class="msub">Which area are you counting now?</div>
+        <div class="area-select-list">${opts}</div>
+        <div class="mbtns">
+          <button class="btn" onclick="closeModal()">Cancel</button>
+          <button class="btn" onclick="showAreaSetupModal()">✏️ Edit Areas</button>
+        </div>
+      </div>
+    </div>`);
+}
 
-    btnStart.addEventListener('click', startCamera);
-    btnStop.addEventListener('click', stopCamera);
-    btnGo.addEventListener('click', () => lookup(manualInput.value));
-    manualInput.addEventListener('keydown', e => { if (e.key==='Enter') lookup(manualInput.value); });
-  </script>
+function selectArea(name) {
+  currentArea = name;
+  closeModal();
+  updateAreaPill();
+  renderStockList();
+}
+
+// ── Camera ────────────────────────────────────────────────────
+async function startCamera() {
+  try {
+    setStatus('Requesting camera…');
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }
+    });
+    video.srcObject = stream;
+    await video.play();
+    video.style.display = 'block';
+    placeholder.style.display = 'none';
+    scanline.style.display = 'block';
+    scanning = true;
+    btnStart.disabled = true;
+    btnStop.disabled = false;
+    if ('BarcodeDetector' in window) {
+      detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39'] });
+      setStatus('Scanning — point at barcode', 'on');
+      loop();
+    } else {
+      setStatus('Camera on — use manual entry below', 'err');
+    }
+  } catch(e) { setStatus('Camera error: ' + (e.message||e), 'err'); }
+}
+
+function loop() {
+  if (!scanning || !video.srcObject) return;
+  if (video.readyState < 2) { rafId = requestAnimationFrame(loop); return; }
+  detector.detect(video).then(codes => {
+    if (codes.length > 0) { stopCamera(); handleBarcode(codes[0].rawValue); }
+    else { rafId = requestAnimationFrame(loop); }
+  }).catch(() => { rafId = requestAnimationFrame(loop); });
+}
+
+function stopCamera() {
+  if (rafId) cancelAnimationFrame(rafId);
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  video.srcObject = null;
+  video.style.display = 'none';
+  placeholder.style.display = 'flex';
+  scanline.style.display = 'none';
+  scanning = false;
+  btnStart.disabled = false;
+  btnStop.disabled = true;
+}
+
+function restartCamera() {
+  setTimeout(() => { if (!scanning) startCamera(); }, 400);
+}
+
+// ── Barcode routing ───────────────────────────────────────────
+function handleBarcode(code) {
+  const barcode = code.trim().replace(/\D/g,'');
+  if (!barcode) return;
+  if (currentMode === 'stock') handleStockScan(barcode);
+  else lookupAndShow(barcode);
+}
+
+// ── Lookup mode ───────────────────────────────────────────────
+async function lookupAndShow(barcode) {
+  setLoading(true);
+  setStatus('Looking up ' + barcode + '…');
+  const local = resolveProduct(barcode);
+  if (local) {
+    showResult(barcode, local.name, local.size, local.source);
+    setStatus('Product found ✓', 'on');
+  } else {
+    const off = await lookupOFF(barcode);
+    if (off) {
+      showResult(barcode, off.name, off.size, 'Open Food Facts');
+      setStatus('Product found (Open Food Facts) ✓', 'on');
+    } else {
+      showNotFound(barcode);
+      setStatus('Not found in any database', 'err');
+    }
+  }
+  setLoading(false);
+}
+
+// ── Stock mode ────────────────────────────────────────────────
+async function handleStockScan(barcode) {
+  setLoading(true);
+  setStatus('Looking up ' + barcode + '…', 'blue');
+  let product = resolveProduct(barcode);
+  if (!product) {
+    const off = await lookupOFF(barcode);
+    if (off) product = { name: off.name, size: off.size, source: 'Open Food Facts' };
+  }
+  setLoading(false);
+  if (!product) {
+    showUnknownModal(barcode);
+    return;
+  }
+  const existing = stockItems.find(i => i.barcode === barcode && i.area === (currentArea||''));
+  if (existing) showDuplicateModal(barcode, product, existing);
+  else showStockEntryModal(barcode, product);
+}
+
+// ── Product lookup ────────────────────────────────────────────
+function resolveProduct(barcode) {
+  if (typeof PRODUCTS !== 'undefined' && PRODUCTS[barcode]) {
+    const p = PRODUCTS[barcode];
+    return { name: p.n, size: p.s||'—', source: 'Wholesaler DB' };
+  }
+  return null;
+}
+
+async function lookupOFF(barcode) {
+  try {
+    const res  = await fetch('https://world.openfoodfacts.org/api/v0/product/' + barcode + '.json');
+    const data = await res.json();
+    if (data.status !== 1 || !data.product) return null;
+    const p = data.product;
+    const name = p.product_name || p.product_name_en || p.generic_name;
+    if (!name) return null;
+    return { name, size: p.quantity||'—' };
+  } catch { return null; }
+}
+
+// ── Stock entry modal ─────────────────────────────────────────
+function showStockEntryModal(barcode, product, prefill=null) {
+  const w = prefill ? prefill.whole  : 0;
+  const t = prefill ? prefill.tenths : 0;
+  const areaTxt = currentArea ? ` · ${currentArea}` : '';
+  showModal(`
+    <div class="modal">
+      <div class="mhead blue">📦 Enter Stock Quantity</div>
+      <div class="mbody">
+        <div class="mproduct">${product.name}</div>
+        <div class="msub">${barcode}${product.size && product.size!=='—' ? ' · '+product.size : ''}${areaTxt}</div>
+        <div class="qty-grid">
+          <div class="qty-field">
+            <label class="qty-label">Whole Bottles</label>
+            <input class="qty-input" type="number" id="qtyWhole" min="0" max="9999" value="${w}" />
+          </div>
+          <div class="qty-field">
+            <label class="qty-label">Tenths</label>
+            <input class="qty-input" type="number" id="qtyTenths" min="1" max="9" value="${t}" placeholder="—" />
+            <div class="qty-hint">1 – 9 (open bottle only)</div>
+          </div>
+        </div>
+        <div class="total-row">
+          <span class="total-lbl">Total</span>
+          <span class="total-val" id="totalVal">${formatTotal(w,t)}</span>
+        </div>
+        <div class="mbtns">
+          <button class="btn" style="flex:1" onclick="closeModal(); restartCamera()">Cancel</button>
+          <button class="btn primary" style="flex:2" onclick="confirmStock('${esc(barcode)}','${esc(product.name)}','${esc(product.size)}')">Confirm</button>
+        </div>
+      </div>
+    </div>`);
+  ['qtyWhole','qtyTenths'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateTotal);
+  });
+  const w0 = document.getElementById('qtyWhole');
+  w0.focus(); w0.select();
+}
+
+function formatTotal(whole, tenths) {
+  whole  = parseInt(whole)  || 0;
+  tenths = parseInt(tenths) || 0;
+  tenths = Math.min(Math.max(tenths, 0), 9);
+  if (tenths === 0) return whole.toString();
+  return whole + '.' + tenths;
+}
+
+function updateTotal() {
+  const w = parseInt(document.getElementById('qtyWhole').value)  || 0;
+  let   t = parseInt(document.getElementById('qtyTenths').value) || 0;
+  t = Math.min(Math.max(t, 0), 9);
+  document.getElementById('totalVal').textContent = formatTotal(w, t);
+}
+
+function confirmStock(barcode, name, size) {
+  const whole  = parseInt(document.getElementById('qtyWhole').value)  || 0;
+  const tenths = Math.min(parseInt(document.getElementById('qtyTenths').value) || 0, 9);
+  const area   = currentArea || '';
+  const idx    = stockItems.findIndex(i => i.barcode === barcode && i.area === area);
+  if (idx >= 0) stockItems[idx] = { barcode, name, size, area, whole, tenths };
+  else           stockItems.push({ barcode, name, size, area, whole, tenths });
+  closeModal();
+  renderStockList();
+  setStatus(`Saved: ${name} — ${formatTotal(whole,tenths)}`, 'blue');
+  restartCamera();
+}
+
+// ── Duplicate modal ───────────────────────────────────────────
+function showDuplicateModal(barcode, product, existing) {
+  const tot = formatTotal(existing.whole, existing.tenths);
+  showModal(`
+    <div class="modal">
+      <div class="mhead gold">Already Scanned</div>
+      <div class="mbody">
+        <div class="mproduct">${product.name}</div>
+        <div class="msub">
+          Current entry: <strong style="color:var(--accent)">${existing.whole} bottle${existing.whole!==1?'s':''} + ${existing.tenths} tenth${existing.tenths!==1?'s':''} = ${tot}</strong>
+          ${existing.area ? '<br>Area: ' + existing.area : ''}
+        </div>
+        <div class="mbtns col">
+          <button class="btn primary" onclick="editExisting('${esc(barcode)}',${JSON.stringify(product).replace(/"/g,'&quot;')})">
+            ✏️ Edit existing entry
+          </button>
+          <button class="btn blue" onclick="addToExisting('${esc(barcode)}','${esc(product.name)}','${esc(product.size)}')">
+            ➕ Add to previous count
+          </button>
+          <button class="btn danger" onclick="deleteAndReenter('${esc(barcode)}',${JSON.stringify(product).replace(/"/g,'&quot;')})">
+            🗑 Delete &amp; re-enter
+          </button>
+          <button class="btn" onclick="closeModal(); restartCamera()">↩ Keep &amp; scan next</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+function editExisting(barcode, product) {
+  const existing = stockItems.find(i => i.barcode === barcode && i.area === (currentArea||''));
+  closeModal();
+  showStockEntryModal(barcode, product, existing);
+}
+
+function addToExisting(barcode, name, size) {
+  const area = currentArea || '';
+  const idx  = stockItems.findIndex(i => i.barcode === barcode && i.area === area);
+  if (idx < 0) { closeModal(); return; }
+  closeModal();
+  // Show entry modal but add to existing on confirm
+  const existing = stockItems[idx];
+  showModal(`
+    <div class="modal">
+      <div class="mhead blue">➕ Add to Count</div>
+      <div class="mbody">
+        <div class="mproduct">${name}</div>
+        <div class="msub">Current: ${formatTotal(existing.whole, existing.tenths)} — enter amount to add</div>
+        <div class="qty-grid">
+          <div class="qty-field">
+            <label class="qty-label">Add Whole Bottles</label>
+            <input class="qty-input" type="number" id="addWhole" min="0" max="9999" value="0" />
+          </div>
+          <div class="qty-field">
+            <label class="qty-label">Add Tenths</label>
+            <input class="qty-input" type="number" id="addTenths" min="0" max="9" value="0" />
+            <div class="qty-hint">1 – 9</div>
+          </div>
+        </div>
+        <div class="total-row">
+          <span class="total-lbl">New Total</span>
+          <span class="total-val" id="addTotalVal">${formatTotal(existing.whole, existing.tenths)}</span>
+        </div>
+        <div class="mbtns">
+          <button class="btn" style="flex:1" onclick="closeModal(); restartCamera()">Cancel</button>
+          <button class="btn primary" style="flex:2" onclick="confirmAdd('${esc(barcode)}','${esc(name)}','${esc(size)}',${existing.whole},${existing.tenths})">Confirm</button>
+        </div>
+      </div>
+    </div>`);
+  ['addWhole','addTenths'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      const aw = (parseInt(document.getElementById('addWhole').value)||0) + existing.whole;
+      let   at = (parseInt(document.getElementById('addTenths').value)||0) + existing.tenths;
+      const carry = Math.floor(at / 10);
+      at = at % 10;
+      document.getElementById('addTotalVal').textContent = formatTotal(aw + carry, at);
+    });
+  });
+}
+
+function confirmAdd(barcode, name, size, existingWhole, existingTenths) {
+  const addW   = parseInt(document.getElementById('addWhole').value)  || 0;
+  const addT   = parseInt(document.getElementById('addTenths').value) || 0;
+  let newWhole  = existingWhole + addW;
+  let newTenths = existingTenths + addT;
+  const carry   = Math.floor(newTenths / 10);
+  newTenths     = newTenths % 10;
+  newWhole     += carry;
+  const area    = currentArea || '';
+  const idx     = stockItems.findIndex(i => i.barcode === barcode && i.area === area);
+  if (idx >= 0) stockItems[idx] = { barcode, name, size, area, whole: newWhole, tenths: newTenths };
+  closeModal();
+  renderStockList();
+  setStatus(`Updated: ${name} — ${formatTotal(newWhole, newTenths)}`, 'blue');
+  restartCamera();
+}
+
+function deleteAndReenter(barcode, product) {
+  stockItems = stockItems.filter(i => !(i.barcode === barcode && i.area === (currentArea||'')));
+  renderStockList();
+  closeModal();
+  showStockEntryModal(barcode, product);
+}
+
+// ── Unknown product modal ─────────────────────────────────────
+function showUnknownModal(barcode) {
+  showModal(`
+    <div class="modal">
+      <div class="mhead red">Product Not Found</div>
+      <div class="mbody">
+        <div class="mproduct" style="color:var(--muted);font-size:1rem">${barcode}</div>
+        <div class="msub">Not in any database. Enter the product name to continue.</div>
+        <div style="margin-bottom:14px">
+          <div class="qty-label" style="margin-bottom:6px">Product Name</div>
+          <input id="unknownName" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:0.85rem;padding:9px 10px;border-radius:2px;outline:none" placeholder="e.g. Smirnoff Vodka 70cl" />
+        </div>
+        <div class="mbtns">
+          <button class="btn" style="flex:1" onclick="closeModal(); restartCamera()">Skip</button>
+          <button class="btn primary" style="flex:2" onclick="continueUnknown('${esc(barcode)}')">Continue</button>
+        </div>
+      </div>
+    </div>`);
+  setTimeout(() => { const n = document.getElementById('unknownName'); if (n) n.focus(); }, 100);
+}
+
+function continueUnknown(barcode) {
+  const name = document.getElementById('unknownName').value.trim();
+  if (!name) { document.getElementById('unknownName').style.borderColor='var(--red)'; return; }
+  closeModal();
+  showStockEntryModal(barcode, { name, size: '—', source: 'Manual entry' });
+}
+
+// ── Premium upsell modal ──────────────────────────────────────
+function showPremiumModal(feature) {
+  showModal(`
+    <div class="modal">
+      <div class="mhead gold">🔒 Premium Feature</div>
+      <div class="mbody">
+        <div class="mproduct">Unlock Premium</div>
+        <div class="msub">This feature is available on the Premium plan.</div>
+        <div class="premium-features">
+          <div class="pf-row"><div class="pf-icon">📊</div><div class="pf-text">Combined export across all areas<span>Merge Bar 1, Bar 2, Cellar into one spreadsheet</span></div></div>
+          <div class="pf-row"><div class="pf-icon">📍</div><div class="pf-text">4–10 areas per stock take<span>Free tier limited to 3 areas</span></div></div>
+          <div class="pf-row"><div class="pf-icon">🏢</div><div class="pf-text">Multi-venue support<span>Manage stock across multiple sites</span></div></div>
+          <div class="pf-row"><div class="pf-icon">📅</div><div class="pf-text">Stock history &amp; trends<span>Compare previous stock takes over time</span></div></div>
+        </div>
+        <div class="mbtns">
+          <button class="btn" style="flex:1" onclick="closeModal()">Not Now</button>
+          <button class="btn primary" style="flex:2" onclick="closeModal()">Coming Soon</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+// ── Stock list ────────────────────────────────────────────────
+function renderStockList() {
+  const filtered = currentArea
+    ? stockItems.filter(i => i.area === currentArea)
+    : stockItems;
+  stockSect.style.display  = currentMode === 'stock' && filtered.length > 0 ? 'block' : 'none';
+  stockCount.textContent   = filtered.length + (filtered.length===1 ? ' item' : ' items');
+  stockAreaTag.textContent = currentArea || '';
+  stockAreaTag.style.display = currentArea ? 'inline-block' : 'none';
+  stockList.innerHTML = filtered.map((item, idx) => {
+    const globalIdx = stockItems.indexOf(item);
+    return `
+      <div class="stock-item">
+        <div class="stock-item-info">
+          <div class="stock-item-name">${item.name}</div>
+          <div class="stock-item-meta">${item.barcode}${item.size && item.size!=='—' ? ' · '+item.size : ''}</div>
+        </div>
+        <div class="stock-item-qty">${formatTotal(item.whole, item.tenths)}</div>
+        <button class="stock-item-del" onclick="deleteItem(${globalIdx})">×</button>
+      </div>`;
+  }).join('');
+}
+
+function deleteItem(idx) {
+  stockItems.splice(idx, 1);
+  renderStockList();
+}
+
+function clearStock() {
+  const areaLabel = currentArea ? ` for ${currentArea}` : '';
+  if (!confirm(`Clear all stock entries${areaLabel}?`)) return;
+  if (currentArea) {
+    stockItems = stockItems.filter(i => i.area !== currentArea);
+  } else {
+    stockItems = [];
+  }
+  renderStockList();
+  setStatus('Stock cleared', 'blue');
+}
+
+// ── CSV export ────────────────────────────────────────────────
+function exportCSV() {
+  const filtered = currentArea
+    ? stockItems.filter(i => i.area === currentArea)
+    : stockItems;
+  if (filtered.length === 0) { setStatus('No items to export', 'err'); return; }
+  const rows = [
+    ['Barcode','Product Name','Whole Bottles','Tenths','Total'],
+    ...filtered.map(i => [
+      i.barcode,
+      '"' + i.name.replace(/"/g,'""') + '"',
+      i.whole,
+      i.tenths || '',
+      formatTotal(i.whole, i.tenths)
+    ])
+  ];
+  const csv  = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  const area = currentArea ? '_' + currentArea.replace(/\s+/g,'_') : '';
+  a.href     = url;
+  a.download = `stocktake${area}_${date}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  setStatus(`Exported ${filtered.length} items`, 'blue');
+}
+
+// ── Lookup result rendering ───────────────────────────────────
+function showResult(barcode, name, size, source) {
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `
+    <div class="rhead">✓ Product Identified</div>
+    <div class="rbody">
+      <div class="pname">${name}</div>
+      <div class="meta">
+        <div class="mi"><span class="ml">Barcode</span><span class="mv bc">${barcode}</span></div>
+        <div class="mi"><span class="ml">Size</span><span class="mv">${size||'—'}</span></div>
+      </div>
+      <div class="src-badge">Source: ${source}</div>
+    </div>`;
+}
+
+function showNotFound(barcode) {
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `
+    <div class="rhead err">Not Found</div>
+    <div class="rbody">
+      <div class="pname" style="color:var(--muted)">${barcode}</div>
+      <p style="font-size:0.7rem;color:var(--muted);line-height:1.6;margin-top:8px">Not in wholesaler database or Open Food Facts.</p>
+    </div>`;
+}
+
+// ── Events ────────────────────────────────────────────────────
+btnStart.addEventListener('click', startCamera);
+btnStop.addEventListener('click', stopCamera);
+btnGo.addEventListener('click', () => handleBarcode(manualInput.value));
+manualInput.addEventListener('keydown', e => { if (e.key==='Enter') handleBarcode(manualInput.value); });
+</script>
 </body>
 </html>
