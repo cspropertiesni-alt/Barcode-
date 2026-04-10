@@ -1,5 +1,5 @@
 {
-  "id": "/Barcode-/",
+  "id": "https://cspropertiesni-alt.github.io/Barcode-/",
   "name": "AlchoScan — UK Alcohol Barcode Lookup",
   "short_name": "AlchoScan",
   "description": "Barcode scanner and stock take tool for UK bars, pubs, and alcohol wholesalers. Instantly identify any UK alcohol product and manage stock takes by area with CSV export.",
@@ -15,6 +15,18 @@
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "categories": ["business", "utilities", "productivity"],
   "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "share_target": {
+    "action": "/Barcode-/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     { "src": "icon-72.png",           "sizes": "72x72",   "type": "image/png", "purpose": "any" },
     { "src": "icon-96.png",           "sizes": "96x96",   "type": "image/png", "purpose": "any" },
