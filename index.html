@@ -631,7 +631,7 @@ async function completeStockTake(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CSV EXPORT — Web Share API (works in WebView/TWA/PWA on Android)
+// CSV EXPORT
 // ═══════════════════════════════════════════════════════════════
 function csvEsc(s){s=String(s||'');return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s}
 function exportCSV(st){
@@ -642,31 +642,24 @@ function exportCSV(st){
   const date=new Date().toISOString().slice(0,10);
   const vn=(st.venueName||'').replace(/\s+/g,'_');
   const fname=`stocktake_${vn}_${date}.csv`;
-  // Method 1: Web Share API with file
-  if(navigator.share){
-    try{
-      const file=new File([csv],fname,{type:'text/csv'});
-      if(navigator.canShare&&navigator.canShare({files:[file]})){
-        navigator.share({files:[file],title:'AlchoScan Export',text:'Stock take export'}).then(()=>{setStatus(`Shared ${st.items.length} items`,'blue')}).catch(e=>{if(e.name!=='AbortError')fallbackExport(csv,fname,st.items.length)});
-        return;
-      }
-    }catch{}
-    // Method 2: Share as text (no file support)
-    try{
-      navigator.share({title:'AlchoScan Export',text:csv}).then(()=>{setStatus(`Shared ${st.items.length} items`,'blue')}).catch(e=>{if(e.name!=='AbortError')fallbackExport(csv,fname,st.items.length)});
+  // Method 1: Share file via Android share sheet
+  try{
+    const file=new File([csv],fname,{type:'text/csv'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file]}).then(()=>{setStatus(`Shared ${st.items.length} items`,'blue')}).catch(e=>{if(e.name!=='AbortError')fallbackExport(csv,count)});
       return;
-    }catch{}
-  }
-  // Method 3: Fallback
-  fallbackExport(csv,fname,st.items.length);
+    }
+  }catch{}
+  // Skip text share — goes straight to clipboard/manual
+  fallbackExport(csv,st.items.length);
 }
-function fallbackExport(csv,fname,count){
-  // Try clipboard
+function fallbackExport(csv,count){
+  // Try clipboard first
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(csv).then(()=>{
       setStatus(`Copied ${count} items to clipboard`,'blue');
       showModal(`<div class="modal"><div class="mhead green">✓ Copied to Clipboard</div><div class="mbody">
-        <div class="msub">The CSV data has been copied. Open Excel, Google Sheets, or Notes and paste it there.</div>
+        <div class="msub">CSV data copied. Paste into Excel, Google Sheets, or any text app.</div>
         <div class="mbtns"><button class="btn primary" onclick="closeModal()">OK</button></div>
       </div></div>`);
     }).catch(()=>showCsvTextModal(csv,count));
@@ -675,10 +668,10 @@ function fallbackExport(csv,fname,count){
   showCsvTextModal(csv,count);
 }
 function showCsvTextModal(csv,count){
-  showModal(`<div class="modal"><div class="mhead gold">Export Data</div><div class="mbody">
-    <div class="msub">Select all and copy the data below, then paste into Excel or Sheets.</div>
-    <textarea id="csvTextArea" style="width:100%;height:180px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:.6rem;padding:8px;border-radius:2px;resize:vertical" readonly>${csv}</textarea>
-    <div class="mbtns" style="margin-top:10px"><button class="btn blue" onclick="document.getElementById('csvTextArea').select();document.execCommand('copy');setStatus('Copied','blue')">📋 Select &amp; Copy</button><button class="btn" onclick="closeModal()">Close</button></div>
+  showModal(`<div class="modal"><div class="mhead gold">Export — ${count} Items</div><div class="mbody">
+    <div class="msub">Select all and copy, then paste into Excel or Sheets.</div>
+    <textarea id="csvTextArea" style="width:100%;height:200px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:.55rem;padding:8px;border-radius:2px;resize:vertical" readonly>${csv.replace(/</g,'&lt;')}</textarea>
+    <div class="mbtns" style="margin-top:10px"><button class="btn blue" style="flex:2" onclick="document.getElementById('csvTextArea').select();document.execCommand('copy');setStatus('Copied','blue');this.textContent='✓ Copied'">📋 Select &amp; Copy All</button><button class="btn" onclick="closeModal()">Close</button></div>
   </div></div>`);
 }
 function exportCurrentCSV(){if(!activeStockTake){setStatus('No active stock take','err');return}exportCSV(activeStockTake)}
