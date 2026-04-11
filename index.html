@@ -359,13 +359,13 @@ function showVenueSelectModal(){
   const opts=config.venues.map((v,idx)=>{
     const lim=getVenueLimit(idx);const isA=v.id===config.activeVenueId;
     const badge=idx===1?`<span class="sel-badge" style="background:var(--accent2);color:var(--accent)">Limited</span>`:'';
-    return `<button class="sel-opt${isA?' active':''}" onclick="selectVenue('${v.id}')"><div><span>${esc(v.name)}</span><br><span class="sel-sub">${v.areas.length} area${v.areas.length!==1?'s':''} · ${lim?lim.maxItems+' items/area':''}</span></div>${badge}</button>`;
+    return `<div style="display:flex;gap:6px;align-items:stretch"><button class="sel-opt${isA?' active':''}" style="flex:1" onclick="selectVenue('${v.id}')"><div><span>${esc(v.name)}</span><br><span class="sel-sub">${v.areas.length} area${v.areas.length!==1?'s':''} · ${lim?lim.maxItems+' items/area':''}</span></div>${badge}</button><button class="ctx-btn" style="align-self:center;font-size:.5rem;padding:6px" onclick="showEditVenueModal('${v.id}')">✏️</button></div>`;
   }).join('');
   const addBtn=config.venues.length<LIMITS.maxVenues
     ?`<button class="btn blue" onclick="closeModal();showAddVenueModal()">+ Add Venue</button>`
     :`<button class="btn locked" onclick="showPremiumModal('venues')">+ Add Venue 🔒</button>`;
   showModal(`<div class="modal"><div class="mhead blue">Select Venue</div><div class="mbody">
-    <div class="msub">${esc(config.groupName)||'Your venues'}</div>
+    <div class="msub">${esc(config.groupName)||'Your venues'} <span style="cursor:pointer;color:var(--blue);text-decoration:underline" onclick="showEditGroupModal()">edit group</span></div>
     <div class="select-list">${opts}</div>
     <div class="area-locked-row" style="margin-top:6px"><div class="area-locked-text">Venues 3 – 5</div><div class="premium-tag">Premium</div></div>
     <div class="mbtns" style="margin-top:14px"><button class="btn" onclick="closeModal()">Cancel</button>${addBtn}</div>
@@ -381,6 +381,63 @@ async function selectVenue(venueId){
 }
 
 // ═══════════════════════════════════════════════════════════════
+// EDIT GROUP NAME
+// ═══════════════════════════════════════════════════════════════
+function showEditGroupModal(){
+  closeModal();
+  showModal(`<div class="modal"><div class="mhead gold">Edit Group Name</div><div class="mbody">
+    <div class="setup-field"><div class="qty-label" style="margin-bottom:6px">Group / Company Name</div><input class="setup-input" id="editGroupName" value="${esc(config.groupName)}" maxlength="60" /></div>
+    <div class="mbtns"><button class="btn" onclick="closeModal();showVenueSelectModal()">Cancel</button><button class="btn primary" style="flex:2" onclick="saveEditGroup()">Save</button></div>
+  </div></div>`);
+  setTimeout(()=>{const el=document.getElementById('editGroupName');if(el){el.focus();el.select()}},100);
+}
+async function saveEditGroup(){
+  config.groupName=document.getElementById('editGroupName').value.trim();
+  await saveConfig();closeModal();updateContextPill();showVenueSelectModal();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EDIT VENUE
+// ═══════════════════════════════════════════════════════════════
+function showEditVenueModal(venueId){
+  closeModal();
+  const v=config.venues.find(x=>x.id===venueId);if(!v)return;
+  const idx=config.venues.indexOf(v);
+  const lim=getVenueLimit(idx);
+  const maxAreas=lim?lim.maxAreas:2;
+  let areaRows=v.areas.map((a,i)=>`<div class="area-row"><div class="area-num">${i+1}</div><input class="area-input" id="editArea${i}" value="${esc(a)}" maxlength="30" /></div>`).join('');
+  // Add empty slots up to limit
+  for(let i=v.areas.length;i<maxAreas;i++){
+    areaRows+=`<div class="area-row"><div class="area-num">${i+1}</div><input class="area-input" id="editArea${i}" placeholder="Add area…" maxlength="30" /></div>`;
+  }
+  showModal(`<div class="modal"><div class="mhead gold">Edit Venue</div><div class="mbody">
+    <div class="setup-field"><div class="qty-label" style="margin-bottom:6px">Venue Name</div><input class="setup-input" id="editVenueName" value="${esc(v.name)}" maxlength="60" /></div>
+    <div class="qty-label" style="margin-bottom:6px">Areas (up to ${maxAreas})</div>
+    <div class="area-list">${areaRows}</div>
+    <div class="mbtns"><button class="btn" onclick="closeModal();showVenueSelectModal()">Cancel</button><button class="btn primary" style="flex:2" onclick="saveEditVenue('${venueId}',${maxAreas})">Save</button></div>
+  </div></div>`);
+  setTimeout(()=>{const el=document.getElementById('editVenueName');if(el){el.focus();el.select()}},100);
+}
+
+async function saveEditVenue(venueId,maxAreas){
+  const v=config.venues.find(x=>x.id===venueId);if(!v)return;
+  const newName=document.getElementById('editVenueName').value.trim();
+  if(!newName){document.getElementById('editVenueName').style.borderColor='var(--red)';return}
+  const newAreas=[];
+  for(let i=0;i<maxAreas;i++){const el=document.getElementById('editArea'+i);if(el&&el.value.trim())newAreas.push(el.value.trim())}
+  // Update area references in active stock take if area names changed
+  if(activeStockTake&&activeStockTake.venueId===venueId){
+    v.areas.forEach((oldArea,i)=>{if(newAreas[i]&&newAreas[i]!==oldArea){activeStockTake.items.forEach(item=>{if(item.area===oldArea)item.area=newAreas[i]})}});
+    if(config.activeArea){const oldIdx=v.areas.indexOf(config.activeArea);if(oldIdx>=0&&newAreas[oldIdx])config.activeArea=newAreas[oldIdx];else if(!newAreas.includes(config.activeArea))config.activeArea=newAreas[0]||null}
+    await saveActiveStockTake();
+  }
+  v.name=newName;v.areas=newAreas;
+  // Update venue name in active stock take
+  if(activeStockTake&&activeStockTake.venueId===venueId)activeStockTake.venueName=newName;
+  await saveConfig();closeModal();updateContextPill();showVenueSelectModal();
+}
+
+// ═══════════════════════════════════════════════════════════════
 // AREA SELECT
 // ═══════════════════════════════════════════════════════════════
 function showAreaSelectModal(){
@@ -390,7 +447,7 @@ function showAreaSelectModal(){
   showModal(`<div class="modal"><div class="mhead blue">Select Area — ${esc(v.name)}</div><div class="mbody">
     <div class="msub">Which area are you counting?</div>
     <div class="select-list">${opts}</div>
-    <div class="mbtns"><button class="btn" onclick="closeModal()">Cancel</button></div>
+    <div class="mbtns"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn" onclick="closeModal();showEditVenueModal('${v.id}')">✏️ Edit Areas</button></div>
   </div></div>`);
 }
 
@@ -574,7 +631,7 @@ async function completeStockTake(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CSV EXPORT
+// CSV EXPORT — uses data URI (blob URLs fail in PWAs on GitHub Pages)
 // ═══════════════════════════════════════════════════════════════
 function csvEsc(s){s=String(s||'');return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s}
 function exportCSV(st){
@@ -582,18 +639,22 @@ function exportCSV(st){
   const rows=[['Barcode','Product Name','Size','Area','Whole Bottles','Tenths','Total']];
   st.items.forEach(i=>rows.push([i.barcode,csvEsc(i.name),csvEsc(i.size||''),csvEsc(i.area||''),i.whole,i.tenths||0,formatTotal(i.whole,i.tenths)]));
   const csv=rows.map(r=>r.join(',')).join('\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const date=new Date().toISOString().slice(0,10);
   const vn=(st.venueName||'').replace(/\s+/g,'_');
   const fname=`stocktake_${vn}_${date}.csv`;
-  // Use navigator.share for mobile if available, else fallback to link click
-  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],fname,{type:'text/csv'})]})){
-    navigator.share({files:[new File([blob],fname,{type:'text/csv'})],title:'Stock Take Export'}).catch(()=>{});
-  }else{
-    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
-  }
+  // Try Web Share API with file (best on Android)
+  try{
+    const file=new File([csv],fname,{type:'text/csv'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:'Stock Take Export'}).catch(()=>{});
+      setStatus(`Exported ${st.items.length} items`,'blue');
+      return;
+    }
+  }catch{}
+  // Fallback: data URI (works everywhere, no CORS issues)
+  const dataUri='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  const a=document.createElement('a');a.href=dataUri;a.download=fname;a.style.display='none';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
   setStatus(`Exported ${st.items.length} items`,'blue');
 }
 function exportCurrentCSV(){if(!activeStockTake){setStatus('No active stock take','err');return}exportCSV(activeStockTake)}
