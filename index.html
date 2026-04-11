@@ -168,7 +168,7 @@
   <div id="statusbar"><div class="dot" id="dot"></div><div class="spinner" id="spinner"></div><span id="statusMsg">Initialising…</span></div>
 </div>
 <div id="result"></div>
-<div id="stock-section"><div class="stock-header"><div class="stock-title-wrap"><div class="stock-title">Stock Take</div><div class="stock-area-tag" id="stockAreaTag"></div></div><div class="stock-count" id="stockCount">0 items</div></div><div class="stock-actions" id="stockActions"><button class="btn green" onclick="completeStockTake()">✓ Complete</button><button class="btn blue" onclick="exportCurrentJSON()">⬇ Export</button><button class="btn locked" onclick="showPremiumModal('combined')">📊 Combined 🔒</button><button class="btn danger" onclick="clearStock()">✕ Clear</button></div><div class="stock-list" id="stockList"></div></div>
+<div id="stock-section"><div class="stock-header"><div class="stock-title-wrap"><div class="stock-title">Stock Take</div><div class="stock-area-tag" id="stockAreaTag"></div></div><div class="stock-count" id="stockCount">0 items</div></div><div class="stock-actions" id="stockActions"><button class="btn green" onclick="completeStockTake()">✓ Complete</button><button class="btn blue" onclick="exportCurrentCSV()">⬇ Export CSV</button><button class="btn locked" onclick="showPremiumModal('combined')">📊 Combined 🔒</button><button class="btn danger" onclick="clearStock()">✕ Clear</button></div><div class="stock-list" id="stockList"></div></div>
 <div id="history-section" style="width:100%;max-width:480px;margin-top:16px;display:none"></div>
 <div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100;align-items:center;justify-content:center;padding:20px"><div id="modalContent"></div></div>
 <script>
@@ -564,7 +564,7 @@ async function completeStockTake(){
   if(!confirm(`Complete this stock take?\n\n${activeStockTake.items.length} items. It will be locked and archived.`))return;
   activeStockTake.status='complete';activeStockTake.completedAt=new Date().toISOString();
   await saveActiveStockTake();
-  exportJSON(activeStockTake);
+  exportCSV(activeStockTake);
   setStatus('Completed & exported ✓','on');activeStockTake=null;renderStockList();updateContextPill();
   showModal(`<div class="modal"><div class="mhead green">✓ Stock Take Complete</div><div class="mbody">
     <div class="mproduct">Archived & Exported</div>
@@ -574,17 +574,29 @@ async function completeStockTake(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// JSON EXPORT
+// CSV EXPORT
 // ═══════════════════════════════════════════════════════════════
-function exportJSON(st){
+function csvEsc(s){s=String(s||'');return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s}
+function exportCSV(st){
   st=st||activeStockTake;if(!st||st.items.length===0){setStatus('No items','err');return}
-  const payload={_v:2,exported:new Date().toISOString(),group:config.groupName||null,venue:st.venueName,status:st.status,createdAt:st.createdAt,completedAt:st.completedAt,items:st.items.map(i=>({b:i.barcode,n:i.name,s:i.size,a:i.area,w:i.whole,t:i.tenths||0,tot:parseFloat(formatTotal(i.whole,i.tenths))}))};
-  const json=JSON.stringify(payload);const blob=new Blob([json],{type:'application/json'});const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');const date=new Date().toISOString().slice(0,10);const vn=(st.venueName||'').replace(/\s+/g,'_');
-  a.href=url;a.download=`stocktake_${vn}_${date}.json`;a.click();URL.revokeObjectURL(url);
+  const rows=[['Barcode','Product Name','Size','Area','Whole Bottles','Tenths','Total']];
+  st.items.forEach(i=>rows.push([i.barcode,csvEsc(i.name),csvEsc(i.size||''),csvEsc(i.area||''),i.whole,i.tenths||0,formatTotal(i.whole,i.tenths)]));
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const date=new Date().toISOString().slice(0,10);
+  const vn=(st.venueName||'').replace(/\s+/g,'_');
+  const fname=`stocktake_${vn}_${date}.csv`;
+  // Use navigator.share for mobile if available, else fallback to link click
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([blob],fname,{type:'text/csv'})]})){
+    navigator.share({files:[new File([blob],fname,{type:'text/csv'})],title:'Stock Take Export'}).catch(()=>{});
+  }else{
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
   setStatus(`Exported ${st.items.length} items`,'blue');
 }
-function exportCurrentJSON(){if(!activeStockTake){setStatus('No active stock take','err');return}exportJSON(activeStockTake)}
+function exportCurrentCSV(){if(!activeStockTake){setStatus('No active stock take','err');return}exportCSV(activeStockTake)}
 
 // ═══════════════════════════════════════════════════════════════
 // HISTORY
@@ -600,7 +612,7 @@ async function showHistory(){
     const areas=[...new Set(st.items.map(i=>i.area).filter(Boolean))];
     return`<div class="archive-item"><div class="archive-date">${d} · ${t}</div><div class="archive-meta">${esc(st.venueName)} · ${st.items.length} items · ${areas.length>0?areas.map(a=>esc(a)).join(', '):'No areas'}</div><div style="margin-top:8px;display:flex;gap:6px"><button class="btn blue" style="flex:unset;font-size:.52rem;padding:6px 10px" onclick="reExportArchive('${st.id}')">⬇ Export</button><button class="btn locked" style="flex:unset;font-size:.52rem;padding:6px 10px" onclick="showPremiumModal('history')">🔍 Items 🔒</button></div></div>`}).join('');
 }
-async function reExportArchive(id){try{const st=await dbGet('stocktakes',id);if(st)exportJSON(st)}catch{setStatus('Export failed','err')}}
+async function reExportArchive(id){try{const st=await dbGet('stocktakes',id);if(st)exportCSV(st)}catch{setStatus('Export failed','err')}}
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
